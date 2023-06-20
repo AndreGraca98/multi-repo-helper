@@ -27,26 +27,31 @@ def is_git_repo(path: Path) -> bool:
     return (path / ".git").is_dir()
 
 
-def get_repos(directory: Path) -> list[Path]:
-    return sorted(filter(is_git_repo, directory.glob("*")))
+def is_dir(path: Path) -> bool:
+    return path.is_dir()
 
 
-def cmd_str(repo: Path, cmd: str) -> str:
-    """Combine the git repo and command to better print the output
+def get_dirs(
+    directory: Path, filter_str: str = "*", git_only: bool = False
+) -> set[Path]:
+    directory = directory.resolve()
+    return set(filter(is_git_repo if git_only else is_dir, directory.glob(filter_str)))
 
-    Args:
-        repo (Path): The git repo
-        cmd (str): The command to run
 
-    Returns:
-        str: The combined command
-    """
-    print_str = f"Git Repo => {repo.name}\nCommand: $ {cmd}\n\n"
-    return f'printf "{print_str}" && {cmd}'
+def get_filtered_dirs(
+    directory, filter_strs: list[str], git_only: bool = False
+) -> set[Path]:
+    filtered_dirs = []
+    for f in filter_strs:
+        filtered_dirs.extend(get_dirs(directory, f, git_only=git_only))
+    return set(filtered_dirs)
 
 
 def run_cmd(repo: Path, cmd: str):
-    return subprocess.run(cmd_str(repo, cmd), capture_output=True, shell=True)
+    print_str = f"Git Repo => {repo.name}\nCommand: $ {cmd}\n\n"
+    cmd_str = f'printf "{print_str}" && {cmd}'
+    with CD(repo):
+        return subprocess.run(cmd_str, capture_output=True, shell=True)
 
 
 class CD:
@@ -68,94 +73,71 @@ class InfoActions:
 
     def list_repos(repos_parent: Path):
         print(f"Listing repos in {repos_parent}")
-        for repo in get_repos(repos_parent):
+        for repo in get_dirs(repos_parent, git_only=True):
             print("*", repo.name)
 
 
-def run_free_cmd(git_dir: Path, /, command: str) -> subprocess.CompletedProcess:
-    print(f"[{git_dir.name}] Running command: {command}")
-    with CD(git_dir):
-        return run_cmd(git_dir, command)
+def run_free_cmd(repo: Path, /, command: str) -> subprocess.CompletedProcess:
+    print(f"[{repo.name}] Running command: {command}")
+    return run_cmd(repo, command)
 
 
-class GitActions:
-    """Git actions for a single repo"""
-
-    @staticmethod
-    def fetch_remotes(repo: Path) -> subprocess.CompletedProcess:
-        print(f"Fetching remotes for {repo.name}")
-        with CD(repo):
-            # Fetch all remotes in parallel with 4 threads
-            return run_cmd(repo, "git fetch -j4 --all")
-
-    @staticmethod
-    def pull_remotes(repo: Path) -> subprocess.CompletedProcess:
-        print(f"Pulling remotes for {repo.name}")
-        with CD(repo):
-            # Pull all remotes in parallel with 4 threads
-            return run_cmd(repo, "git pull -j4 --all")
-
-    @staticmethod
-    def checkout_branch(repo: Path, branch: str) -> subprocess.CompletedProcess:
-        print(f"Checkout git branch for {repo.name}")
-        with CD(repo):
-            return run_cmd(repo, f"git checkout {branch}")
-
-    @staticmethod
-    def stash_changes(repo: Path) -> subprocess.CompletedProcess:
-        print(f"Stashing changes for {repo.name}")
-        with CD(repo):
-            return run_cmd(repo, "git stash")
-
-    @staticmethod
-    def apply_stash_changes(repo: Path) -> subprocess.CompletedProcess:
-        print(f"Applying last stash changes for {repo.name}")
-        with CD(repo):
-            return run_cmd(repo, "git stash pop")
-
-    @staticmethod
-    def commit(repo: Path, msg: str) -> subprocess.CompletedProcess:
-        print(f"Comiting changes for {repo.name}")
-        with CD(repo):
-            return run_cmd(repo, f'git commit -m "{msg}"')
-
-    @staticmethod
-    def push(repo: Path) -> subprocess.CompletedProcess:
-        print(f"Pushing changes for {repo.name}")
-        with CD(repo):
-            return run_cmd(repo, "git push")
+GIT_CMDS = {
+    "fetch": "git fetch -j4 --all",
+    "pull": "git pull -j4 --all",
+    "checkout": "git checkout {branch}",
+    "stash": "git stash",
+    "unstash": "git stash pop",
+    "commit": 'git commit -m "{message}"',
+    "push": "git push",
+}
 
 
-class VenvActions:
-    """Actions for virtual environments"""
+def git_cmd_factory(command: str, **kwargs):
+    def run_git_cmd(repo: Path) -> subprocess.CompletedProcess:
+        cmd = GIT_CMDS[command].format(**kwargs)
+        return run_cmd(repo, cmd)
 
-    def update(git_dir: Path) -> subprocess.CompletedProcess:
-        print(f"Updating virtual environment for {git_dir.name}")
+    return run_git_cmd
+
+
+VENV_CMDS = {
+    "update": "pipenv update --dev",
+    "remove": "pipenv --rm",
+    "install": "pip install pip pipenv --upgrade && pipenv install --dev",
+}
+
+
+def venv_cmd_factory(command: str, **kwargs):
+    def run_venv_cmd(repo: Path) -> subprocess.CompletedProcess:
         raise NotImplementedError
-        with CD(git_dir):
-            return run_cmd(git_dir, "pipenv update --dev")
+        cmd = VENV_CMDS[command].format(**kwargs)
+        return run_cmd(repo, cmd)
 
-    def remove(git_dir: Path) -> subprocess.CompletedProcess:
-        print(f"Removing virtual environment for {git_dir.name}")
-        raise NotImplementedError
-        with CD(git_dir):
-            return run_cmd(git_dir, "pipenv --rm")
-
-    def install(git_dir: Path) -> subprocess.CompletedProcess:
-        print(f"Installing virtual environment for {git_dir.name}")
-        raise NotImplementedError
-        with CD(git_dir):
-            return run_cmd(
-                git_dir, "pip install pip pipenv --upgrade && pipenv install --dev"
-            )
+    return run_venv_cmd
 
 
 def get_parser():
     here = Path.cwd().resolve()
 
-    def add_verbose(parser: argparse.ArgumentParser):
+    def add_top_level_args(parser: argparse.ArgumentParser):
         parser.add_argument(
-            "-v", "--verbose", action="store_true", help="Print verbose output"
+            "--verbose", action="store_true", help="Print verbose output"
+        )
+        parser.add_argument(
+            "--filter",
+            type=str,
+            nargs="+",
+            default=["*"],
+            help="Filter repos. WARNING: if using the wildcard * "
+            'don\'t forget to add " around it (like "*") , '
+            "otherwise it will get the cwd files/dirs.",
+        )
+        parser.add_argument(
+            "--all",
+            action="store_true",
+            dest="all_dirs",
+            help="Run on all directories, even if they are not a git repository.",
         )
 
     parser = argparse.ArgumentParser(description=f"Actions for all git repos in {here}")
@@ -167,7 +149,7 @@ def get_parser():
         description=f"Top level info for repos in {here}",
     )
     info_parser.add_argument("-l", "--list", action="store_true", help="List repos")
-    add_verbose(info_parser)
+    add_top_level_args(info_parser)
 
     cmd_parser = sub_parsers.add_parser(
         "cmd",
@@ -175,7 +157,7 @@ def get_parser():
         description=f"Run a free text command in each repo of {here}",
     )
     cmd_parser.add_argument("command", type=str, help="Command to run")
-    add_verbose(cmd_parser)
+    add_top_level_args(cmd_parser)
 
     git_parser = sub_parsers.add_parser(
         "git",
@@ -189,9 +171,9 @@ def get_parser():
     )
     git_parser.add_argument(
         "-a",
-        "--apply_stash",
+        "--unstash",
         action="store_true",
-        dest="apply_stash",
+        dest="unstash",
         help="Apply last stash changes",
     )
     git_parser.add_argument(
@@ -205,14 +187,15 @@ def get_parser():
     )
     git_parser.add_argument(
         "-C",
-        "--commit",
+        "--COMMIT",
         type=str,
-        default="",
         dest="commit",
         help="Commit changes with message",
     )
-    git_parser.add_argument("-P", "--push", action="store_true", help="Push changes")
-    add_verbose(git_parser)
+    git_parser.add_argument(
+        "-P", "--PUSH", action="store_true", dest="push", help="Push changes"
+    )
+    add_top_level_args(git_parser)
 
     venv_parser = sub_parsers.add_parser(
         "venv",
@@ -224,34 +207,41 @@ def get_parser():
     venv_parser.add_argument(
         "-i", "--install", action="store_true", help="Install venvs"
     )
-    add_verbose(venv_parser)
+    add_top_level_args(venv_parser)
 
     return parser
 
 
 def get_actions(
     parser: argparse.ArgumentParser,
-) -> tuple[bool, str, list[Callable]]:
+) -> tuple[argparse.Namespace, list[Callable]]:
     """Get a list of actions to perform in each repo
 
     Args:
         parser (argparse.ArgumentParser): Parser
 
     Returns:
-        tuple[bool, str, list[Callable]]: verbose?, subcommand?, list of actions
+        tuple[argparse.Namespace, list[Callable]]: args, list of actions
     """
     args = parser.parse_args()
     argsd = dict(args._get_kwargs())
 
-    verbose = argsd.pop("verbose", False)
+    # Pop to make help printing easier
+    if "verbose" in argsd:
+        argsd.pop("verbose")
+    if "filter" in argsd:
+        argsd.pop("filter")
+    if "all_dirs" in argsd:
+        argsd.pop("all_dirs")
     subcommand = argsd.pop("subcommand")
 
     if not subcommand:
+        # Print main help if no subcommand specified
         parser.print_help()
         exit(0)
 
     if not any(argsd.values()):
-        # Print help if no action is specified
+        # Print subcommand help if no action is specified
         subparsers = parser._subparsers._actions[1].choices
         print(subparsers[subcommand].format_help())
         exit(0)
@@ -264,53 +254,51 @@ def get_actions(
 
     elif subcommand == "git":
         if argsd["fetch"]:
-            actions.append(GitActions.fetch_remotes)
+            actions.append(git_cmd_factory("fetch"))
         if argsd["stash"]:
-            actions.append(GitActions.stash_changes)
+            actions.append(git_cmd_factory("stash"))
         if argsd["pull"]:
-            actions.append(GitActions.pull_remotes)
-        if argsd["apply_stash"]:
-            actions.append(GitActions.apply_stash_changes)
+            actions.append(git_cmd_factory("pull"))
+        if argsd["unstash"]:
+            actions.append(git_cmd_factory("unstash"))
         if argsd["checkout"]:
-            actions.append(
-                partial(GitActions.checkout_branch, branch=argsd["checkout"])
-            )
+            actions.append(git_cmd_factory("checkout", branch=argsd["checkout"]))
         if argsd["commit"]:
-            actions.append(partial(GitActions.commit, msg=argsd["commit"]))
+            actions.append(git_cmd_factory("commit", message=argsd["commit"]))
         if argsd["push"]:
-            actions.append(GitActions.push)
+            actions.append(git_cmd_factory("push"))
 
     elif subcommand == "venv":
         if argsd["update"]:
-            actions.append(VenvActions.update)
+            actions.append(venv_cmd_factory("update"))
         if argsd["remove"]:
-            actions.append(VenvActions.remove)
+            actions.append(venv_cmd_factory("remove"))
         if argsd["install"]:
-            actions.append(VenvActions.install)
+            actions.append(venv_cmd_factory("install"))
 
     elif subcommand == "cmd":
         actions.append(partial(run_free_cmd, command=argsd["command"]))
 
-    return verbose, subcommand, actions
+    return args, actions
 
 
 def main(parser: argparse.ArgumentParser):
     here = Path.cwd().resolve()
-    repos = get_repos(here)
+    args, actions = get_actions(parser)
 
-    verbose, subcommand, actions = get_actions(parser)
+    filtered_repos = get_filtered_dirs(here, args.filter, not args.all_dirs)
 
     # TODO: (maybe?) filter out repos
     for action in actions:
-        if subcommand == "info":
+        if args.subcommand == "info":
             action(here)
             continue
 
         with Pool(4) as p:
-            results = p.map(action, repos)
+            results = p.map(action, filtered_repos)
             print("=" * 100)
             for r in results:
-                if not verbose and r.returncode == 0:
+                if not args.verbose and r.returncode == 0:
                     continue
                 print(
                     "SUCCESS" if r.returncode == 0 else "FAILED",
