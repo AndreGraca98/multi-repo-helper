@@ -6,15 +6,10 @@ This is a tool to help when dealing with multiple repositories for a single proj
 
 ## How to install
 
-Add the following to your ~/.bashrc: `PATH=$HOME/bin:$PATH`
-
 Run (in current directory):
 
 ```bash
-chmod +x multi_repo_helper.py
-mkdir -p ~/bin
-cp multi_repo_helper.py ~/bin/multi_repo_helper
-. ~/.bashrc
+. setup.sh
 ```
 
 ## How to use

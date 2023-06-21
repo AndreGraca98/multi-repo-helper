@@ -1,34 +1,122 @@
 #!/usr/bin/env python3
 
 """
+Disclaimer: This file is a big monolith so that
+we don't need to import from other files.
+
 How to install
 
-Add the following to your ~/.bashrc:
+Add the following to your ~/.bashrc or prefered shell config file:
 PATH=$HOME/bin:$PATH
 
 Run:
 chmod +x multi_repo_helper.py
 mkdir -p ~/bin
 cp multi_repo_helper.py ~/bin/multi_repo_helper
-. ~/.bashrc
 
 """
 
 import argparse
 import os
 import subprocess
-from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Callable
 
+GIT_CMDS = {
+    "fetch": "git fetch -j4 --all",
+    "pull": "git pull -j4 --all",
+    "checkout": "git checkout {branch}",
+    "stash": "git stash",
+    "unstash": "git stash pop",
+    "add": "git add {files_str}",  # files_str is a string of files separated by spaces
+    "commit": 'git commit -m "{message}"',
+    "push": "git push",
+}
+
+
+VENV_CMDS = {
+    "update": "pipenv update --dev",
+    "remove": "pipenv --rm",
+    "install": "pip install pip pipenv --upgrade && pipenv install --dev",
+}
+
+FREE_CMDS = {"free": "{command}"}
+
+
+# Console pretty printing
+class cs:
+    """Console styles"""
+
+    # Styles
+    END = "\33[0m"
+    BOLD = "\33[1m"
+    MUTE = "\33[2m"
+    ITALIC = "\33[3m"
+    UNDERLINE = "\33[4m"
+    BLINK = "\33[5m"
+    SELECTED = "\33[7m"
+    STRIKE = "\33[9m"
+    # Foreground colors
+    BLACK = "\33[30m"
+    RED = "\33[31m"
+    GREEN = "\33[32m"
+    YELLOW = "\33[33m"
+    BLUE = "\33[34m"
+    MAGENTA = "\33[35m"
+    CYAN = "\33[36m"
+    WHITE = "\33[37m"
+    # Backgroud colors
+    BBLACK = "\33[40m"
+    BRED = "\33[41m"
+    BGREEN = "\33[42m"
+    BYELLOW = "\33[43m"
+    BBLUE = "\33[44m"
+    BMAGENTA = "\33[45m"
+    BCYAN = "\33[46m"
+    BWHITE = "\33[47m"
+    # Muted foregroud colors
+    MBLACK = "\33[90m"
+    MRED = "\33[91m"
+    MGREEN = "\33[92m"
+    MYELLOW = "\33[93m"
+    MBLUE = "\33[94m"
+    MMAGENTA = "\33[95m"
+    MCYAN = "\33[96m"
+    MWHITE = "\33[97m"
+    # Muted backgroud colors
+    MBBLACK = "\33[100m"
+    MBRED = "\33[101m"
+    MBGREEN = "\33[102m"
+    MBYELLOW = "\33[103m"
+    MBBLUE = "\33[104m"
+    MBMAGENTA = "\33[105m"
+    MBCYAN = "\33[106m"
+    MBWHITE = "\33[107m"
+
+    def __init__(self, *styles: str):
+        self.styles = styles
+
+    def __call__(self, text: str) -> str:
+        style = "".join(self.styles)
+        return f"{style}{text}{cs.END}"
+
+
+title = cs(cs.BOLD, cs.UNDERLINE, cs.YELLOW)
+underline = cs(cs.UNDERLINE)
+name = cs(cs.BOLD, cs.UNDERLINE, cs.MUTE, cs.BBLUE)
+code = cs(cs.ITALIC, cs.MUTE, cs.GREEN)
+error = cs(cs.BOLD, cs.BLINK, cs.RED)
+success = cs(cs.BOLD, cs.GREEN)
+
+
+# Utils
+def is_dir(path: Path) -> bool:
+    return path.is_dir()
+
 
 def is_git_repo(path: Path) -> bool:
     return (path / ".git").is_dir()
-
-
-def is_dir(path: Path) -> bool:
-    return path.is_dir()
 
 
 def get_dirs(
@@ -40,25 +128,18 @@ def get_dirs(
 
 def get_filtered_dirs(
     directory, filter_strs: list[str], git_only: bool = False
-) -> set[Path]:
+) -> list[Path]:
     filtered_dirs = []
     for f in filter_strs:
         filtered_dirs.extend(get_dirs(directory, f, git_only=git_only))
-    return set(filtered_dirs)
+    return sorted(set(filtered_dirs))
 
 
-def run_cmd(repo: Path, cmd: str):
-    print_str = f"Git Repo => {repo.name}\nCommand: $ {cmd}\n\n"
-    cmd_str = f'printf "{print_str}" && {cmd}'
-    with CD(repo):
-        return subprocess.run(cmd_str, capture_output=True, shell=True)
-
-
-class CD:
+class cd:
     """Context manager for changing the current working directory"""
 
     def __init__(self, path):
-        self.path = path
+        self.path = path.resolve()
 
     def __enter__(self):
         self.cwd = Path.cwd()
@@ -68,53 +149,60 @@ class CD:
         os.chdir(self.cwd)
 
 
+def run_cmd(repo: Path, cmd: str):
+    print_str = f"{name(repo.name)}\n{code('$ '+cmd)}\n"
+    cmd_str = f'printf "{print_str}" && {cmd}'
+    with cd(repo):
+        return subprocess.run(cmd_str, capture_output=True, shell=True)
+
+
+# Action/Command classes
+class Actions:
+    def __init__(self, action: str, **kwargs) -> None:
+        self.action = action
+        self.kwargs = kwargs
+
+    @property
+    def cmd(self) -> str:
+        raise NotImplementedError
+
+    def __call__(self, repo: Path) -> subprocess.CompletedProcess:
+        print(f"Current repo: {name(repo.name)} ")
+        return run_cmd(repo, self.cmd)
+
+    def __str__(self) -> str:
+        return self.cmd
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.action}, {self.kwargs})"
+
+
+class Git(Actions):
+    @property
+    def cmd(self) -> str:
+        return GIT_CMDS[self.action].format(**self.kwargs)
+
+
+class Venv(Actions):
+    @property
+    def cmd(self) -> str:
+        raise NotImplementedError
+        return VENV_CMDS[self.action].format(**self.kwargs)
+
+
+class Free(Actions):
+    @property
+    def cmd(self) -> str:
+        return FREE_CMDS[self.action].format(**self.kwargs)
+
+
 class InfoActions:
     """Top level info actions"""
 
     def list_repos(repos_parent: Path):
-        print(f"Listing repos in {repos_parent}")
-        for repo in get_dirs(repos_parent, git_only=True):
-            print("*", repo.name)
-
-
-def run_free_cmd(repo: Path, /, command: str) -> subprocess.CompletedProcess:
-    print(f"[{repo.name}] Running command: {command}")
-    return run_cmd(repo, command)
-
-
-GIT_CMDS = {
-    "fetch": "git fetch -j4 --all",
-    "pull": "git pull -j4 --all",
-    "checkout": "git checkout {branch}",
-    "stash": "git stash",
-    "unstash": "git stash pop",
-    "commit": 'git commit -m "{message}"',
-    "push": "git push",
-}
-
-
-def git_cmd_factory(command: str, **kwargs):
-    def run_git_cmd(repo: Path) -> subprocess.CompletedProcess:
-        cmd = GIT_CMDS[command].format(**kwargs)
-        return run_cmd(repo, cmd)
-
-    return run_git_cmd
-
-
-VENV_CMDS = {
-    "update": "pipenv update --dev",
-    "remove": "pipenv --rm",
-    "install": "pip install pip pipenv --upgrade && pipenv install --dev",
-}
-
-
-def venv_cmd_factory(command: str, **kwargs):
-    def run_venv_cmd(repo: Path) -> subprocess.CompletedProcess:
-        raise NotImplementedError
-        cmd = VENV_CMDS[command].format(**kwargs)
-        return run_cmd(repo, cmd)
-
-    return run_venv_cmd
+        print(f"Listing repos in {title(repos_parent)}")
+        for repo in sorted(get_dirs(repos_parent, git_only=True)):
+            print("*", name(repo.name))
 
 
 def get_parser():
@@ -177,7 +265,6 @@ def get_parser():
         help="Apply last stash changes",
     )
     git_parser.add_argument(
-        "-c",
         "--checkout",
         type=str,
         choices={"dev", "presentation"},
@@ -186,8 +273,17 @@ def get_parser():
         help="Checkout branch",
     )
     git_parser.add_argument(
-        "-C",
-        "--COMMIT",
+        "--add",
+        type=str,
+        nargs="?",
+        const=".",
+        default=None,
+        action="append",
+        dest="add",
+        help="Add changes",
+    )
+    git_parser.add_argument(
+        "--commit",
         type=str,
         dest="commit",
         help="Commit changes with message",
@@ -201,6 +297,7 @@ def get_parser():
         "venv",
         help="Run a virtual environment command in each repo",
         description=f"Run a virtual environment command in each repo of {here}",
+        allow_abbrev=True,
     )
     venv_parser.add_argument("-u", "--update", action="store_true", help="Update venvs")
     venv_parser.add_argument("-r", "--remove", action="store_true", help="Remove venvs")
@@ -254,30 +351,32 @@ def get_actions(
 
     elif subcommand == "git":
         if argsd["fetch"]:
-            actions.append(git_cmd_factory("fetch"))
+            actions.append(Git("fetch"))
         if argsd["stash"]:
-            actions.append(git_cmd_factory("stash"))
+            actions.append(Git("stash"))
         if argsd["pull"]:
-            actions.append(git_cmd_factory("pull"))
+            actions.append(Git("pull"))
         if argsd["unstash"]:
-            actions.append(git_cmd_factory("unstash"))
+            actions.append(Git("unstash"))
         if argsd["checkout"]:
-            actions.append(git_cmd_factory("checkout", branch=argsd["checkout"]))
+            actions.append(Git("checkout", branch=argsd["checkout"]))
+        if argsd["add"]:
+            actions.append(Git("add", files_str=" ".join((argsd["add"]))))
         if argsd["commit"]:
-            actions.append(git_cmd_factory("commit", message=argsd["commit"]))
+            actions.append(Git("commit", message=argsd["commit"]))
         if argsd["push"]:
-            actions.append(git_cmd_factory("push"))
+            actions.append(Git("push"))
 
     elif subcommand == "venv":
         if argsd["update"]:
-            actions.append(venv_cmd_factory("update"))
+            actions.append(Venv("update"))
         if argsd["remove"]:
-            actions.append(venv_cmd_factory("remove"))
+            actions.append(Venv("remove"))
         if argsd["install"]:
-            actions.append(venv_cmd_factory("install"))
+            actions.append(Venv("install"))
 
     elif subcommand == "cmd":
-        actions.append(partial(run_free_cmd, command=argsd["command"]))
+        actions.append(Free("free", command=argsd["command"]))
 
     return args, actions
 
@@ -288,28 +387,29 @@ def main(parser: argparse.ArgumentParser):
 
     filtered_repos = get_filtered_dirs(here, args.filter, not args.all_dirs)
 
-    # TODO: (maybe?) filter out repos
-    for action in actions:
+    for cmd in actions:
         if args.subcommand == "info":
-            action(here)
+            cmd(here)
             continue
 
+        print(f"Running {code(cmd)} in {len(filtered_repos)} repos...")
         with Pool(4) as p:
-            results = p.map(action, filtered_repos)
+            results = p.map(cmd, filtered_repos)
             print("=" * 100)
             for r in results:
                 if not args.verbose and r.returncode == 0:
                     continue
-                print(
-                    "SUCCESS" if r.returncode == 0 else "FAILED",
-                    "\nStdout:",
-                    r.stdout.decode(),
-                    "\nStderr:",
-                    r.stderr.decode(),
-                    "\n" + "=" * 100,
-                )
+
+                text = ""
+                text += success("[SUCCESS]") if r.returncode == 0 else error("[FAILED]")
+                text += f"\n{underline('Stdout')}: {r.stdout.decode()}"
+                text += f"\n{underline('Stderr')}: {r.stderr.decode()}\n"
+                text += "=" * 100
+
+                print(text)
 
 
 if __name__ == "__main__":
     parser = get_parser()
     main(parser)
+    # print(get_actions(parser))
