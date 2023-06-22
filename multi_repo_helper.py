@@ -258,13 +258,14 @@ def get_parser():
         "-s", "--stash", action="store_true", dest="stash", help="Stash changes"
     )
     git_parser.add_argument(
-        "-a",
+        "-u",
         "--unstash",
         action="store_true",
         dest="unstash",
         help="Apply last stash changes",
     )
     git_parser.add_argument(
+        "--ch",
         "--checkout",
         type=str,
         choices={"dev", "presentation"},
@@ -283,6 +284,7 @@ def get_parser():
         help="Add changes",
     )
     git_parser.add_argument(
+        "--cm",
         "--commit",
         type=str,
         dest="commit",
@@ -350,6 +352,8 @@ def get_actions(
             actions.append(InfoActions.list_repos)
 
     elif subcommand == "git":
+        if argsd["checkout"]:
+            actions.append(Git("checkout", branch=argsd["checkout"]))
         if argsd["fetch"]:
             actions.append(Git("fetch"))
         if argsd["stash"]:
@@ -358,8 +362,6 @@ def get_actions(
             actions.append(Git("pull"))
         if argsd["unstash"]:
             actions.append(Git("unstash"))
-        if argsd["checkout"]:
-            actions.append(Git("checkout", branch=argsd["checkout"]))
         if argsd["add"]:
             actions.append(Git("add", files_str=" ".join((argsd["add"]))))
         if argsd["commit"]:
