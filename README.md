@@ -6,7 +6,7 @@ This is a tool to help when dealing with multiple repositories for a single proj
 
 ## How to install
 
-Run (in current directory):
+Run (in `multi-repo-helper/`):
 
 ```bash
 . setup.sh
