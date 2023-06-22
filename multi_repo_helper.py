@@ -291,7 +291,7 @@ def get_parser():
         help="Commit changes with message",
     )
     git_parser.add_argument(
-        "-P", "--PUSH", action="store_true", dest="push", help="Push changes"
+        "-P", "--push", action="store_true", dest="push", help="Push changes"
     )
     add_top_level_args(git_parser)
 
@@ -395,7 +395,7 @@ def main(parser: argparse.ArgumentParser):
             continue
 
         print(f"Running {code(cmd)} in {len(filtered_repos)} repos...")
-        with Pool(4) as p:
+        with Pool(10) as p:
             results = p.map(cmd, filtered_repos)
             print("=" * 100)
             for r in results:
