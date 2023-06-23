@@ -9,4 +9,4 @@ esac
 
 chmod +x multi_repo_helper.py
 mkdir -p ~/bin
-cp multi_repo_helper.py ~/bin/multi_repo_helper
+cp multi_repo_helper.py ~/bin/mrh

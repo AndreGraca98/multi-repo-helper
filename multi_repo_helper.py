@@ -36,9 +36,12 @@ GIT_CMDS = {
 
 
 VENV_CMDS = {
+    "sync": "pipenv sync",
+    "location": "pipenv --venv",
     "update": "pipenv update --dev",
     "remove": "pipenv --rm",
-    "install": "pip install pip pipenv --upgrade && pipenv install --dev",
+    "install": "pipenv install --dev",
+    "install_lock": "pipenv install --dev --ignore-pipfile",
 }
 
 FREE_CMDS = {"free": "{command}"}
@@ -102,12 +105,14 @@ class cs:
         return f"{style}{text}{cs.END}"
 
 
-title = cs(cs.BOLD, cs.UNDERLINE, cs.YELLOW)
-underline = cs(cs.UNDERLINE)
-name = cs(cs.BOLD, cs.UNDERLINE, cs.MUTE, cs.BBLUE)
-code = cs(cs.ITALIC, cs.MUTE, cs.GREEN)
-error = cs(cs.BOLD, cs.BLINK, cs.RED)
-success = cs(cs.BOLD, cs.GREEN)
+ftitle = cs(cs.BOLD, cs.UNDERLINE, cs.YELLOW)
+funderline = cs(cs.UNDERLINE)
+fstrike = cs(cs.STRIKE)
+fname = cs(cs.BOLD, cs.UNDERLINE, cs.MUTE, cs.BBLUE)
+fcode = cs(cs.ITALIC, cs.MUTE, cs.GREEN)
+ferror = cs(cs.BOLD, cs.BLINK, cs.RED)
+fsuccess = cs(cs.BOLD, cs.GREEN)
+fhelp = cs(cs.YELLOW, cs.MUTE)
 
 
 # Utils
@@ -138,8 +143,8 @@ def get_filtered_dirs(
 class cd:
     """Context manager for changing the current working directory"""
 
-    def __init__(self, path):
-        self.path = path.resolve()
+    def __init__(self, path: str | Path):
+        self.path = Path(path).resolve()
 
     def __enter__(self):
         self.cwd = Path.cwd()
@@ -150,7 +155,7 @@ class cd:
 
 
 def run_cmd(repo: Path, cmd: str):
-    print_str = f"{name(repo.name)}\n{code('$ '+cmd)}\n"
+    print_str = f"{fname(repo.name)}\n{fcode('$ '+cmd)}\n"
     cmd_str = f'printf "{print_str}" && {cmd}'
     with cd(repo):
         return subprocess.run(cmd_str, capture_output=True, shell=True)
@@ -167,7 +172,7 @@ class Actions:
         raise NotImplementedError
 
     def __call__(self, repo: Path) -> subprocess.CompletedProcess:
-        print(f"Current repo: {name(repo.name)} ")
+        print(f"Current repo: {fname(repo.name)} ")
         return run_cmd(repo, self.cmd)
 
     def __str__(self) -> str:
@@ -186,7 +191,6 @@ class Git(Actions):
 class Venv(Actions):
     @property
     def cmd(self) -> str:
-        raise NotImplementedError
         return VENV_CMDS[self.action].format(**self.kwargs)
 
 
@@ -200,9 +204,9 @@ class InfoActions:
     """Top level info actions"""
 
     def list_repos(repos_parent: Path):
-        print(f"Listing repos in {title(repos_parent)}")
+        print(f"Listing repos in {ftitle(repos_parent)}")
         for repo in sorted(get_dirs(repos_parent, git_only=True)):
-            print("*", name(repo.name))
+            print("*", fname(repo.name))
 
 
 def get_parser():
@@ -265,7 +269,6 @@ def get_parser():
         help="Apply last stash changes",
     )
     git_parser.add_argument(
-        "--ch",
         "--checkout",
         type=str,
         choices={"dev", "presentation"},
@@ -281,17 +284,24 @@ def get_parser():
         default=None,
         action="append",
         dest="add",
-        help="Add changes",
+        help="Add changes. Use < --add > to add all changes or "
+        '< --add "file1" --add "file2" > to add specific files.',
+        metavar="PATH ...",
     )
+
     git_parser.add_argument(
-        "--cm",
         "--commit",
         type=str,
         dest="commit",
-        help="Commit changes with message",
+        help="Commit changes",
+        metavar='"MESSAGE"',
     )
     git_parser.add_argument(
-        "-P", "--push", action="store_true", dest="push", help="Push changes"
+        "-P",
+        "--push",
+        action="store_true",
+        dest="push",
+        help="Push changes",
     )
     add_top_level_args(git_parser)
 
@@ -301,10 +311,47 @@ def get_parser():
         description=f"Run a virtual environment command in each repo of {here}",
         allow_abbrev=True,
     )
-    venv_parser.add_argument("-u", "--update", action="store_true", help="Update venvs")
-    venv_parser.add_argument("-r", "--remove", action="store_true", help="Remove venvs")
     venv_parser.add_argument(
-        "-i", "--install", action="store_true", help="Install venvs"
+        "-s",
+        "--sync",
+        dest="sync",
+        action="store_true",
+        help="Sync virtual environment",
+    )
+    venv_parser.add_argument(
+        "-l",
+        "--location",
+        dest="location",
+        action="store_true",
+        help="Show location of virtual environment",
+    )
+    venv_parser.add_argument(
+        "-u",
+        "--update",
+        dest="update",
+        action="store_true",
+        help="Update virtual environment",
+    )
+    venv_parser.add_argument(
+        "-r",
+        "--remove",
+        dest="remove",
+        action="store_true",
+        help="Remove virtual environment",
+    )
+    venv_parser.add_argument(
+        "-i",
+        "--install",
+        dest="install",
+        action="store_true",
+        help="Install virtual environment",
+    )
+    venv_parser.add_argument(
+        "-I",
+        "--install_lock",
+        dest="install_lock",
+        action="store_true",
+        help="Install virtual environment from lock file",
     )
     add_top_level_args(venv_parser)
 
@@ -336,13 +383,13 @@ def get_actions(
 
     if not subcommand:
         # Print main help if no subcommand specified
-        parser.print_help()
+        print(fhelp(parser.format_help()))
         exit(0)
 
     if not any(argsd.values()):
         # Print subcommand help if no action is specified
         subparsers = parser._subparsers._actions[1].choices
-        print(subparsers[subcommand].format_help())
+        print(fhelp(subparsers[subcommand].format_help()))
         exit(0)
 
     actions = []
@@ -370,12 +417,18 @@ def get_actions(
             actions.append(Git("push"))
 
     elif subcommand == "venv":
+        if argsd["location"]:
+            actions.append(Venv("location"))
+        if argsd["sync"]:
+            actions.append(Venv("sync"))
         if argsd["update"]:
             actions.append(Venv("update"))
         if argsd["remove"]:
             actions.append(Venv("remove"))
         if argsd["install"]:
             actions.append(Venv("install"))
+        if argsd["install_lock"]:
+            actions.append(Venv("install_lock"))
 
     elif subcommand == "cmd":
         actions.append(Free("free", command=argsd["command"]))
@@ -394,7 +447,7 @@ def main(parser: argparse.ArgumentParser):
             cmd(here)
             continue
 
-        print(f"Running {code(cmd)} in {len(filtered_repos)} repos...")
+        print(f"Running {fcode(cmd)} in {len(filtered_repos)} repos...")
         with Pool(10) as p:
             results = p.map(cmd, filtered_repos)
             print("=" * 100)
@@ -402,13 +455,13 @@ def main(parser: argparse.ArgumentParser):
                 if not args.verbose and r.returncode == 0:
                     continue
 
-                text = ""
-                text += success("[SUCCESS]") if r.returncode == 0 else error("[FAILED]")
-                text += f"\n{underline('Stdout')}: {r.stdout.decode()}"
-                text += f"\n{underline('Stderr')}: {r.stderr.decode()}\n"
-                text += "=" * 100
+                txt = ""
+                txt += ferror("[FAILED]") if r.returncode else fsuccess("[SUCCESS]")
+                txt += f"\n{funderline('Stdout')}: {r.stdout.decode()}"
+                txt += f"\n{funderline('Stderr')}: {r.stderr.decode()}\n"
+                txt += fstrike("=" * 100)
 
-                print(text)
+                print(txt)
 
 
 if __name__ == "__main__":
