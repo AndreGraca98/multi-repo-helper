@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# TODO: add cfg file
+
 """
 Disclaimer: This file is a big monolith so that
 we don't need to import from other files.
