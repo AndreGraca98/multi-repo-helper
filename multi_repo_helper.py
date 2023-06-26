@@ -14,7 +14,7 @@ PATH=$HOME/bin:$PATH
 Run:
 chmod +x multi_repo_helper.py
 mkdir -p ~/bin
-cp multi_repo_helper.py ~/bin/multi_repo_helper
+cp multi_repo_helper.py ~/bin/mrh
 
 """
 
@@ -31,7 +31,7 @@ GIT_CMDS = {
     "checkout": "git checkout {branch}",
     "stash": "git stash",
     "unstash": "git stash pop",
-    "add": "git add {files_str}",  # files_str is a string of files separated by spaces
+    "add": "git add {files}",  # files is a string of files separated by spaces
     "commit": 'git commit -m "{message}"',
     "push": "git push",
 }
@@ -164,7 +164,15 @@ def run_cmd(repo: Path, cmd: str):
 
 
 # Action/Command classes
-class Actions:
+class Action:
+    """Action class for executing commands on a repo or top level directory"""
+
+    class Level:
+        TOP = "top"
+        REPO = "repo"
+
+    level = NotImplemented  # Top level or repo level action
+
     def __init__(self, action: str, **kwargs) -> None:
         self.action = action
         self.kwargs = kwargs
@@ -181,37 +189,51 @@ class Actions:
         return self.cmd
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.action}, {self.kwargs})"
+        kwargs = ", ".join(f"{k}={v}" for k, v in self.kwargs.items())
+        if kwargs:
+            kwargs = ", " + kwargs
+        return (
+            f"Action level: {self.level} =>"
+            f" {self.__class__.__name__}({self.action}{kwargs})"
+        )
 
 
-class Git(Actions):
+class Git(Action):
+    level = Action.Level.REPO
+
     @property
     def cmd(self) -> str:
         return GIT_CMDS[self.action].format(**self.kwargs)
 
 
-class Venv(Actions):
+class Venv(Action):
+    level = Action.Level.REPO
+
     @property
     def cmd(self) -> str:
         return VENV_CMDS[self.action].format(**self.kwargs)
 
 
-class Free(Actions):
+class Free(Action):
+    level = Action.Level.REPO
+
     @property
     def cmd(self) -> str:
         return FREE_CMDS[self.action].format(**self.kwargs)
 
 
-class InfoActions:
-    """Top level info actions"""
-
-    def list_repos(repos_parent: Path):
-        print(f"Listing repos in {ftitle(repos_parent)}")
-        for repo in sorted(get_dirs(repos_parent, git_only=True)):
-            print("*", fname(repo.name))
-
-
 def get_parser():
+    class JoinValuesAction(argparse.Action):
+        """Action to join multiple values into one string for argparse"""
+
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)
+            self.values = []
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            self.values.append(values)
+            setattr(namespace, self.dest, " ".join(self.values))
+
     here = Path.cwd().resolve()
 
     def add_top_level_args(parser: argparse.ArgumentParser):
@@ -234,7 +256,10 @@ def get_parser():
             help="Run on all directories, even if they are not a git repository.",
         )
 
-    parser = argparse.ArgumentParser(description=f"Actions for all git repos in {here}")
+    parser = argparse.ArgumentParser(
+        description=f"Actions for all git repos in {here}",
+        fromfile_prefix_chars="@",
+    )
     sub_parsers = parser.add_subparsers(dest="subcommand")
 
     info_parser = sub_parsers.add_parser(
@@ -284,7 +309,7 @@ def get_parser():
         nargs="?",
         const=".",
         default=None,
-        action="append",
+        action=JoinValuesAction,
         dest="add",
         help="Add changes. Use < --add > to add all changes or "
         '< --add "file1" --add "file2" > to add specific files.',
@@ -396,11 +421,7 @@ def get_actions(
 
     actions = []
 
-    if subcommand == "info":
-        if argsd["list"]:
-            actions.append(InfoActions.list_repos)
-
-    elif subcommand == "git":
+    if subcommand == "git":
         if argsd["checkout"]:
             actions.append(Git("checkout", branch=argsd["checkout"]))
         if argsd["fetch"]:
@@ -412,7 +433,7 @@ def get_actions(
         if argsd["unstash"]:
             actions.append(Git("unstash"))
         if argsd["add"]:
-            actions.append(Git("add", files_str=" ".join((argsd["add"]))))
+            actions.append(Git("add", files=argsd["add"]))
         if argsd["commit"]:
             actions.append(Git("commit", message=argsd["commit"]))
         if argsd["push"]:
@@ -438,32 +459,36 @@ def get_actions(
     return args, actions
 
 
+def multi_action(action: Action, repos: list[Path], verbose: bool = False):
+    print(f"Running {fcode(action)} in {len(repos)} repos...")
+    with Pool(10) as p:
+        results = p.map(action, repos)
+        print("=" * 100)
+        for r in results:
+            if not verbose and r.returncode == 0:
+                continue
+
+            txt = ""
+            txt += ferror("[FAILED]") if r.returncode else fsuccess("[SUCCESS]")
+            txt += f"\n{funderline('Stdout')}: {r.stdout.decode()}"
+            txt += f"\n{funderline('Stderr')}: {r.stderr.decode()}\n"
+            txt += fstrike("=" * 100)
+
+            print(txt)
+
+
 def main(parser: argparse.ArgumentParser):
     here = Path.cwd().resolve()
     args, actions = get_actions(parser)
 
     filtered_repos = get_filtered_dirs(here, args.filter, not args.all_dirs)
 
-    for cmd in actions:
-        if args.subcommand == "info":
-            cmd(here)
-            continue
-
-        print(f"Running {fcode(cmd)} in {len(filtered_repos)} repos...")
-        with Pool(10) as p:
-            results = p.map(cmd, filtered_repos)
-            print("=" * 100)
-            for r in results:
-                if not args.verbose and r.returncode == 0:
-                    continue
-
-                txt = ""
-                txt += ferror("[FAILED]") if r.returncode else fsuccess("[SUCCESS]")
-                txt += f"\n{funderline('Stdout')}: {r.stdout.decode()}"
-                txt += f"\n{funderline('Stderr')}: {r.stderr.decode()}\n"
-                txt += fstrike("=" * 100)
-
-                print(txt)
+    for action in actions:
+        if action.level == Action.Level.TOP:
+            print(f"Running {fcode(action)} in top level directory...")
+            action()
+        else:
+            multi_action(action, filtered_repos, args.verbose)
 
 
 if __name__ == "__main__":
