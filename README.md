@@ -16,6 +16,23 @@ Run (in `multi-repo-helper/`):
 
 Can be used in any folder that has git repositories
 
+### Chain commands
+
 ```bash
-multi_repo_helper info -l
+$ mrh git --fetch --add file1.txt --add file2.txt --commit "feat: my super feature" --push
+<<< "fetches all repos, adds file1 and file2, commits with a message and finaly pushes to remote" >>>
+```
+
+### Use arguments from a file
+
+```bash
+$ echo -e "--install\n--filter\nrepo1\nrepo2\n--verbose" > myargs
+$ cat myargs 
+--install
+--filter
+repo1
+repo2
+--verbose
+$ mrh venv @myargs
+<<< "Installs the virtual environment only for repo1 and repo2" >>>
 ```
