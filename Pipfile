@@ -4,11 +4,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-pre-commit = "*"
-
 
 [requires]
 python_version = "3.11"
 
 [dev-packages]
+pre-commit = "*"
 ipykernel = "*"
