@@ -193,8 +193,8 @@ class Action:
         if kwargs:
             kwargs = ", " + kwargs
         return (
-            f"Action level: {self.level} =>"
-            f" {self.__class__.__name__}({self.action}{kwargs})"
+            # f"Action level: {self.level} => "
+            f"{self.__class__.__name__}({self.action}{kwargs})"
         )
 
 
@@ -489,6 +489,17 @@ def main(parser: argparse.ArgumentParser):
             action()
         else:
             multi_action(action, filtered_repos, args.verbose)
+
+    # # Use macos voice to notify when the actions are finished
+    # subprocess.run("say Finished", shell=True)
+    # Use macos dialog to notify when the actions are finished
+    app = '"System Events"'
+    text = f'"Multi repo helper finished running actions:\n{actions}"'
+    OK = '{"OK"}'
+    subprocess.run(
+        f"osascript -e 'tell application {app} to display dialog {text} buttons {OK}'",
+        shell=True,
+    )
 
 
 if __name__ == "__main__":
