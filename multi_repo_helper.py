@@ -422,12 +422,12 @@ def get_actions(
     actions = []
 
     if subcommand == "git":
-        if argsd["checkout"]:
-            actions.append(Git("checkout", branch=argsd["checkout"]))
         if argsd["fetch"]:
             actions.append(Git("fetch"))
         if argsd["stash"]:
             actions.append(Git("stash"))
+        if argsd["checkout"]:
+            actions.append(Git("checkout", branch=argsd["checkout"]))
         if argsd["pull"]:
             actions.append(Git("pull"))
         if argsd["unstash"]:
