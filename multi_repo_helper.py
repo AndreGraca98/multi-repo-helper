@@ -490,16 +490,42 @@ def main(parser: argparse.ArgumentParser):
         else:
             multi_action(action, filtered_repos, args.verbose)
 
+    notify(actions)
+
+
+def notify(actions):
+    import platform
+
+    if platform.system() == "Darwin":
+        notify_macos(actions)
+    elif platform.system() == "Linux":
+        notify_linux(actions)
+    elif platform.system() == "Windows":
+        notify_windows(actions)
+    else:
+        raise NotImplementedError
+
+
+def notify_macos(actions):
     # # Use macos voice to notify when the actions are finished
     # subprocess.run("say Finished", shell=True)
     # Use macos dialog to notify when the actions are finished
     app = '"System Events"'
-    text = f'"Multi repo helper finished running actions:\n{actions}"'
+    actions_str = "\n".join(map(lambda a: f"\u2022\t{a}", actions))
+    text = f'"Multi repo helper finished running actions:\n{actions_str}"'
     OK = '{"OK"}'
     subprocess.run(
-        f"osascript -e 'tell application {app} to display dialog {text} buttons {OK}'",
+        f"osascript -e 'tell application {app} to display dialog {text} buttons {OK}' >/dev/null",
         shell=True,
     )
+
+
+def notify_linux(actions):
+    ...
+
+
+def notify_windows(actions):
+    ...
 
 
 if __name__ == "__main__":
