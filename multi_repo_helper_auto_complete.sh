@@ -1,3 +1,7 @@
+#
+
+# START: Bash auto completion for multi_repo_helper
+# Do not edit the following line; it is used by multi_repo_helper
 _mrh() {
     local cur prev
     cur=${COMP_WORDS[COMP_CWORD]}
@@ -26,3 +30,4 @@ _mrh() {
     esac
 }
 complete -F _mrh mrh
+# END: Bash auto completion for multi_repo_helper
