@@ -14,3 +14,7 @@ mkdir -p ~/bin
 cp multi_repo_helper.py ~/bin/mrh
 # replace with your preferred way of reloading the shell
 . $HOME/.bashrc
+
+# add auto completion
+. multi_repo_helper_auto_complete.sh
+. $HOME/.bashrc

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO: add cfg file
-
 """
 Disclaimer: This file is a big monolith so that
 we don't need to import from other files.
@@ -21,6 +19,7 @@ cp multi_repo_helper.py ~/bin/mrh
 import argparse
 import os
 import subprocess
+import sys
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Callable
@@ -494,7 +493,8 @@ def notify_macos(actions):
     text = f'"Multi repo helper finished running actions:\n{actions_str}"'
     OK = '{"OK"}'
     subprocess.run(
-        f"osascript -e 'tell application {app} to display dialog {text} buttons {OK}' >/dev/null",
+        f"osascript -e 'tell application {app} to display "
+        f"dialog {text} buttons {OK}' >/dev/null",
         shell=True,
     )
 
@@ -507,7 +507,48 @@ def notify_windows(actions):
     ...
 
 
+def __bash_autocomplete(parser: argparse.ArgumentParser):
+    """Bash autocomplete for subcommands and actions.
+    This function is called when the script is run with
+    the argument BASH_COMPLETION and the argument SUBCOMMANDS or ACTIONS {subcommand}}
+    """
+
+    def __get_subcommands():
+        return parser._subparsers._actions[1].choices.keys()
+
+    def __get_subcommand_actions(subcommand: str):
+        actions = parser._subparsers._actions[1].choices[subcommand]._optionals._actions
+        options = []
+        for action in actions:
+            options.extend(action.option_strings)
+        return options
+
+    if "BASH_COMPLETION" in sys.argv[1:]:
+        if "SUBCOMMANDS" in sys.argv[1:]:
+            if len(sys.argv) != 3:
+                raise ValueError(
+                    r"Invalid bash completion argument: "
+                    r"python multi_repo_helper.py SUBCOMMANDS"
+                )
+            print(" ".join(__get_subcommands()))
+        elif "ACTIONS" in sys.argv[1:]:
+            if len(sys.argv) != 4:
+                raise ValueError(
+                    r"Invalid bash completion argument: "
+                    r"python multi_repo_helper.py ACTIONS {subcommand}"
+                )
+            print(" ".join(__get_subcommand_actions(sys.argv[3])))
+        else:
+            raise ValueError(
+                r"Invalid bash completion argument: "
+                r"'python multi_repo_helper.py SUBCOMMANDS' "
+                r"or 'python multi_repo_helper.py ACTIONS {subcommand}'"
+            )
+        exit(0)
+
+
 if __name__ == "__main__":
     parser = get_parser()
+    __bash_autocomplete(parser)
     main(parser)
     # print(get_actions(parser))
