@@ -38,12 +38,10 @@ GIT_CMDS = {
 
 
 VENV_CMDS = {
-    "sync": "pipenv sync",
     "location": "pipenv --venv",
-    "update": "pipenv update --dev",
+    "lock": "pipenv lock",
     "remove": "pipenv --rm",
-    "install": "pipenv install --dev",
-    "install_lock": "pipenv install --dev --ignore-pipfile",
+    "sync": "pipenv sync",
 }
 
 FREE_CMDS = {"free": "{command}"}
@@ -339,25 +337,17 @@ def get_parser():
         allow_abbrev=True,
     )
     venv_parser.add_argument(
-        "-s",
-        "--sync",
-        dest="sync",
-        action="store_true",
-        help="Sync virtual environment",
-    )
-    venv_parser.add_argument(
-        "-l",
         "--location",
         dest="location",
         action="store_true",
         help="Show location of virtual environment",
     )
     venv_parser.add_argument(
-        "-u",
-        "--update",
-        dest="update",
+        "-l",
+        "--lock",
+        dest="lock",
         action="store_true",
-        help="Update virtual environment",
+        help="Lock dependencies",
     )
     venv_parser.add_argument(
         "-r",
@@ -367,18 +357,11 @@ def get_parser():
         help="Remove virtual environment",
     )
     venv_parser.add_argument(
-        "-i",
-        "--install",
-        dest="install",
+        "-s",
+        "--sync",
+        dest="sync",
         action="store_true",
-        help="Install virtual environment",
-    )
-    venv_parser.add_argument(
-        "-I",
-        "--install_lock",
-        dest="install_lock",
-        action="store_true",
-        help="Install virtual environment from lock file",
+        help="Install dependencies from lock file",
     )
     add_top_level_args(venv_parser)
 
@@ -442,16 +425,12 @@ def get_actions(
     elif subcommand == "venv":
         if argsd["location"]:
             actions.append(Venv("location"))
-        if argsd["sync"]:
-            actions.append(Venv("sync"))
-        if argsd["update"]:
-            actions.append(Venv("update"))
+        if argsd["lock"]:
+            actions.append(Venv("lock"))
         if argsd["remove"]:
             actions.append(Venv("remove"))
-        if argsd["install"]:
-            actions.append(Venv("install"))
-        if argsd["install_lock"]:
-            actions.append(Venv("install_lock"))
+        if argsd["sync"]:
+            actions.append(Venv("sync"))
 
     elif subcommand == "cmd":
         actions.append(Free("free", command=argsd["command"]))
