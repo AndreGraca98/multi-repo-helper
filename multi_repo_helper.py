@@ -40,7 +40,7 @@ VENV_CMDS = {
     "location": "pipenv --venv",
     "lock": "pipenv lock",
     "remove": "pipenv --rm",
-    "sync": "pipenv sync",
+    "sync": "pipenv sync --dev",
 }
 
 FREE_CMDS = {"free": "{command}"}
