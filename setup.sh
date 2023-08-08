@@ -8,7 +8,7 @@ echo
 echo "################################"
 
 # replace with your preferred shell
-SHELLRC=~/.bashrc
+SHELLRC=~/.bash_profile
 COMPLETE_FILE=~/.bash_completion
 
 chmod +x multi_repo_helper.py
@@ -19,16 +19,17 @@ cp multi_repo_helper.py ~/bin/mrh
 [ -r $COMPLETE_FILE ] || echo $COMPLETE_FILE does not exist. Creating... && touch $COMPLETE_FILE
 
 # add auto completion to COMPLETE_FILE
-if ! grep -q "# Do not edit the following line; it is used by multi_repo_helper" $COMPLETE_FILE; then
+if ! grep -q "# multi_repo_helper autocomplete" $COMPLETE_FILE; then
     echo "Adding auto completion to $COMPLETE_FILE"
-    cat multi_repo_helper_auto_complete.sh >>$COMPLETE_FILE
+    echo -e "\n# multi_repo_helper autocomplete" >>$COMPLETE_FILE
+    echo '[ -f ~/bin/mrh ] && source /dev/stdin <<<"$(mrh BASH_COMPLETION INIT)"' >>$COMPLETE_FILE
 fi
 
 HOME_PATERN=$(echo $HOME | sed 's/\//\\\//g;s/\./\\./g')
 RAW_COMPLETE_FILE=$(echo $COMPLETE_FILE | sed "s/$HOME_PATERN/~/g")
 
 # add source to SHELLRC
-if ! grep -q "[ -r $RAW_COMPLETE_FILE ] && source $RAW_COMPLETE_FILE" $SHELLRC; then
+if ! grep -q "[ -f $RAW_COMPLETE_FILE ] && source $RAW_COMPLETE_FILE" $SHELLRC; then
     echo "Adding source to $SHELLRC"
-    echo -e "\n# Auto completion for multi_repo_helper\n[ -r $RAW_COMPLETE_FILE ] && source $RAW_COMPLETE_FILE" >>$SHELLRC
+    echo -e "\n# Auto completion for multi_repo_helper\n[ -f $RAW_COMPLETE_FILE ] && source $RAW_COMPLETE_FILE" >>$SHELLRC
 fi

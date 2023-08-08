@@ -524,7 +524,9 @@ def __bash_autocomplete(parser: argparse.ArgumentParser):
         return options
 
     if "BASH_COMPLETION" in sys.argv[1:]:
-        if "SUBCOMMANDS" in sys.argv[1:]:
+        if "INIT" in sys.argv[1:]:
+            __mrh_complete()
+        elif "SUBCOMMANDS" in sys.argv[1:]:
             if len(sys.argv) != 3:
                 raise ValueError(
                     r"Invalid bash completion argument: "
@@ -545,6 +547,51 @@ def __bash_autocomplete(parser: argparse.ArgumentParser):
                 r"or 'python multi_repo_helper.py ACTIONS {subcommand}'"
             )
         exit(0)
+
+
+def __mrh_complete():
+    print(
+        """
+
+# MRH
+# START: Bash auto completion for multi_repo_helper
+# Do not edit the following line; it is used by multi_repo_helper
+_mrh_complete() {
+    local cur prev
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev=${COMP_WORDS[COMP_CWORD - 1]}
+
+    case ${COMP_CWORD} in
+    1)
+        COMPREPLY=($(compgen -W "$(mrh BASH_COMPLETION SUBCOMMANDS)" -- ${cur}))
+        ;;
+    2)
+        case ${prev} in
+        git)
+            COMPREPLY=($(compgen -W "$(mrh BASH_COMPLETION ACTIONS git)" -- ${cur}))
+            ;;
+        venv)
+            COMPREPLY=($(compgen -W "$(mrh BASH_COMPLETION ACTIONS venv)" -- ${cur}))
+            ;;
+        cmd)
+            COMPREPLY=($(compgen -W "$(mrh BASH_COMPLETION ACTIONS cmd)" -- ${cur}))
+            ;;
+        *)
+            COMPREPLY=()
+            ;;
+        esac
+        ;;
+    *)
+        COMPREPLY=($(compgen -f -- ${cur}))
+
+        ;;
+    esac
+}
+complete -F _mrh_complete mrh
+# END: Bash auto completion for multi_repo_helper
+
+"""
+    )
 
 
 if __name__ == "__main__":
