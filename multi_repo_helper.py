@@ -489,12 +489,13 @@ def notify_macos(actions):
     # subprocess.run("say Finished", shell=True)
     # Use macos dialog to notify when the actions are finished
     app = '"System Events"'
+    OK = '{"OK"}'
+    title = '"MRH"'
     actions_str = "\n".join(map(lambda a: f"\u2022\t{a}", actions))
     text = f'"Multi repo helper finished running actions:\n{actions_str}"'
-    OK = '{"OK"}'
     subprocess.run(
-        f"osascript -e 'tell application {app} to display "
-        f"dialog {text} buttons {OK}' >/dev/null",
+        f"osascript -e 'tell application {app} to display dialog {text} buttons {OK} "
+        f"default button 1 with title {title}' >/dev/null",
         shell=True,
     )
 
