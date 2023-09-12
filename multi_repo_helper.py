@@ -295,7 +295,7 @@ def get_parser():
     git_parser.add_argument(
         "--checkout",
         type=str,
-        choices={"dev", "presentation"},
+        choices={"dev", "latest", "master"},
         default=None,
         dest="checkout",
         help="Checkout branch",
