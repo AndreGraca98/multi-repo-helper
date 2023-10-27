@@ -41,6 +41,8 @@ VENV_CMDS = {
     "lock": "pipenv lock",
     "remove": "pipenv --rm",
     "sync": "pipenv sync --dev",
+    "update": "pipenv update",
+    "install": "pipenv install",
 }
 
 FREE_CMDS = {"free": "{command}"}
@@ -362,6 +364,20 @@ def get_parser():
         action="store_true",
         help="Install dependencies from lock file",
     )
+    venv_parser.add_argument(
+        "-u",
+        "--update",
+        dest="update",
+        action="store_true",
+        help="Update the virtual environment",
+    )
+    venv_parser.add_argument(
+        "-i",
+        "--install",
+        dest="install",
+        action="store_true",
+        help="Install the virtual environment",
+    )
     add_top_level_args(venv_parser)
 
     return parser
@@ -430,6 +446,10 @@ def get_actions(
             actions.append(Venv("remove"))
         if argsd["sync"]:
             actions.append(Venv("sync"))
+        if argsd["update"]:
+            actions.append(Venv("update"))
+        if argsd["install"]:
+            actions.append(Venv("install"))
 
     elif subcommand == "cmd":
         actions.append(Free("free", command=argsd["command"]))
