@@ -36,3 +36,24 @@ repo2
 $ mrh venv @myargs
 <<< "Installs the virtual environment only for repo1 and repo2" >>>
 ```
+
+### Usefull commands
+
+```bash
+$ cat filter-ms
+--filter
+core
+icn*
+doc*gen*
+*inter*
+time*
+*api*
+# Pull all the repos
+$ mrh git --pull @filter-ms
+# Update all the lock files
+$ mrh venv --update @filter-ms
+# Test all services
+$ mrh cmd "make test" @filter-ms
+# Add all changes, commit with message and push to origin
+$ mrh git --add --commit "chore: update piplock" --push  @filter-ms
+```
