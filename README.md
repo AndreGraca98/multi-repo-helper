@@ -9,7 +9,10 @@ This is a tool to help when dealing with multiple repositories for a single proj
 Run (in `multi-repo-helper/`):
 
 ```bash
-. setup.sh
+# Load mrh from single file
+SHELLRC_FILE=~/.bash_profile python setup.py
+# Load mrh from tab completion file
+SHELLRC_FILE=~/.bash_profile TABCOMPLETE_FILE=~/.bash_completion python setup.py
 ```
 
 ## How to use
@@ -54,6 +57,6 @@ $ mrh git --pull @filter-ms
 $ mrh venv --update @filter-ms
 # Test all services
 $ mrh cmd "make test" @filter-ms
-# Add all changes, commit with message and push to origin
-$ mrh git --add --commit "chore: update piplock" --push  @filter-ms
+# Add all pipfile lock changes, commit with message and push to origin
+$ mrh git --add "Pipfile.lock" --commit "chore: update piplock" --push  @filter-ms
 ```
