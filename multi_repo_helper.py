@@ -254,6 +254,12 @@ def get_parser():
             dest="all_dirs",
             help="Run on all directories, even if they are not a git repository.",
         )
+        parser.add_argument(
+            "--no-notify",
+            action="store_true",
+            dest="no_notify",
+            help="Don't notify when the actions are finished.",
+        )
 
     parser = argparse.ArgumentParser(
         description=f"Actions for all git repos in {here}",
@@ -487,8 +493,8 @@ def main(parser: argparse.ArgumentParser):
             action()
         else:
             multi_action(action, filtered_repos, args.verbose)
-
-    notify(actions)
+    if not args.no_notify:
+        notify(actions)
 
 
 def notify(actions):
