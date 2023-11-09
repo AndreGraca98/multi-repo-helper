@@ -1,17 +1,32 @@
 from multiprocessing import Pool
 from pathlib import Path
 
-from mrh.actions import Action, get_filtered_dirs
-from mrh.colors import cs
-from mrh.configuration import Configuration
-from mrh.notifications import notify
-from mrh.parser import get_parser
+from .actions import Action
+from .colors import cs
+from .configuration import Configuration
+from .notifications import notify
+from .parser import get_parser
 
 ferror = cs(cs.BOLD, cs.BLINK, cs.RED)
 fsuccess = cs(cs.BOLD, cs.GREEN)
 funderline = cs(cs.UNDERLINE)
 fstrike = cs(cs.STRIKE)
 fcode = cs(cs.ITALIC, cs.MUTE, cs.GREEN)
+
+
+def filter_dirs(directory: Path, filter_str: str) -> set[Path]:
+    """Get all directories in a given directory that match a
+    filter string and are git repositories"""
+    directory = directory.resolve()
+    return set(filter(lambda p: (p / ".git").is_dir(), directory.glob(filter_str)))
+
+
+def get_filtered_dirs(directory: Path, filter_strs: list[str]) -> list[Path]:
+    total_filtered: set[Path] = set()
+    for filter_str in filter_strs:
+        filtered = filter_dirs(directory, filter_str)
+        total_filtered.update(filtered)
+    return sorted(total_filtered)
 
 
 def multi_action(

@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from mrh.logger import get_logger
+from .logger import get_logger
 
 __all__ = ["Configuration", "ConfigurationReader", "DEFAULT_CONFIGURATION_READER"]
 

@@ -2,9 +2,9 @@ import os
 import subprocess
 from pathlib import Path
 
-from mrh.colors import cs
-from mrh.commands import COMMANDS
-from mrh.logger import get_logger
+from .colors import cs
+from .commands import COMMANDS
+from .logger import get_logger
 
 _log = get_logger(__name__)
 
@@ -44,21 +44,6 @@ class Action:
         )
 
 
-def filter_dirs(directory: Path, filter_str: str) -> set[Path]:
-    """Get all directories in a given directory that match a
-    filter string and are git repositories"""
-    directory = directory.resolve()
-    return set(filter(lambda p: (p / ".git").is_dir(), directory.glob(filter_str)))
-
-
-def get_filtered_dirs(directory: Path, filter_strs: list[str]) -> list[Path]:
-    total_filtered: set[Path] = set()
-    for filter_str in filter_strs:
-        filtered = filter_dirs(directory, filter_str)
-        total_filtered.update(filtered)
-    return sorted(total_filtered)
-
-
 class cd:
     """Context manager for changing the current working directory"""
 
@@ -74,8 +59,8 @@ class cd:
         os.chdir(self.cwd)
 
 
-def run_cmd(repo: Path, cmd: str):
-    print_str = f"{fname(repo.name)}\n{fcode('$ '+cmd)}\n"
+def run_cmd(repository: Path, cmd: str):
+    print_str = f"{fname(repository.name)}\n{fcode('$ '+cmd)}\n"
     cmd_str = f'printf "{print_str}" && {cmd}'
-    with cd(repo):
+    with cd(repository):
         return subprocess.run(cmd_str, capture_output=True, shell=True)

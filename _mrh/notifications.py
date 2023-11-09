@@ -1,7 +1,7 @@
 import platform
 import subprocess
 
-from mrh.actions import Action
+from .actions import Action
 
 
 def notify(action: Action):

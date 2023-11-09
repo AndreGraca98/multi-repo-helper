@@ -2,9 +2,9 @@ import argparse
 from pathlib import Path
 from typing import Iterable
 
-from mrh.commands import COMMANDS
-from mrh.configuration import DEFAULT_CONFIGURATION_READER, ConfigurationReader
-from mrh.logger import get_logger
+from .commands import COMMANDS
+from .configuration import DEFAULT_CONFIGURATION_READER, ConfigurationReader
+from .logger import get_logger
 
 __all__ = ["get_parser"]
 
