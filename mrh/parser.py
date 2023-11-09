@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Iterable
 
 from mrh.commands import COMMANDS
-from mrh.configuration import Configuration, ConfigurationReader
+from mrh.configuration import DEFAULT_CONFIGURATION, ConfigurationReader
 from mrh.logger import get_logger
 
 __all__ = ["get_parser"]
@@ -34,100 +34,112 @@ def add_top_level_args(parser: argparse.ArgumentParser):
         "--cfg",
         "--config",
         type=str,
-        default=Configuration(),
+        default=DEFAULT_CONFIGURATION,
         dest="config",
         action=ConfigurationAction,
         help="Config file to use",
     )
 
 
+class subcommand:
+    """Context manager for adding subcommands to a parser"""
+
+    def __init__(self, sub_parser, name: str):
+        self.name = name
+        parser = sub_parser.add_parser(name=name, help=f"Run a {name} command")
+        self.sub_parser = parser.add_subparsers(dest="subcommand", required=True)
+
+    def __enter__(self):
+        return self.sub_parser
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        sub_parsers = self.sub_parser.choices
+
+        _subcommands_sanity_check(
+            sub_parsers.keys(),
+            COMMANDS[self.name].keys(),
+            parser_name=self.name,
+        )
+        for git_sub_parser in sub_parsers.values():
+            add_top_level_args(git_sub_parser)
+
+
 def add_git_parser(sub_parser: argparse._SubParsersAction):
-    git_parser = sub_parser.add_parser(name="git", help="Run a git command")
-    git_sub_parser = git_parser.add_subparsers(dest="subcommand", required=True)
-    git_sub_parser.add_parser("fetch", help="Fetch remotes")
-    git_sub_parser.add_parser("pull", help="Pull remotes")
-    git_sub_parser.add_parser("push", help="Push changes")
-    git_add_parser = git_sub_parser.add_parser("add", help="Add changes")
-    git_add_parser.add_argument(
-        "files",
-        nargs="+",
-        default=[],
-        action=ExtendAndJoinStrAction,
-        help="Files to add",
-        metavar="PATH ...",
-    )
-    git_commit_parser = git_sub_parser.add_parser("commit", help="Commit changes")
-    git_commit_parser.add_argument(
-        "message",
-        nargs="+",
-        default=[],
-        action=ExtendAndJoinStrAction,
-        help="Commit message",
-        metavar="MESSAGE",
-    )
-    git_checkout_parser = git_sub_parser.add_parser("checkout", help="Checkout branch")
-    git_checkout_parser.add_argument("branch", type=str, help="Branch to checkout")
-    # TODO
-    # git_stash_parser = git_sub_parsers.add_parser("stash", help="Stash changes")
-    # git_stash_parser.add_argument(
-    #     "-a", "--all", action="store_true", dest="all", help="Stash all changes"
-    # )
-    # git_stash_parser.add_argument(
-    #     "-m", "--message", dest="message", help="Stash message"
-    # )
-    # git_sub_parsers.add_parser("unstash", help="Apply last stash changes")
+    with subcommand(sub_parser, "git") as git_sub_parser:
+        git_sub_parser.add_parser("fetch", help="Fetch remotes")
+        git_sub_parser.add_parser("pull", help="Pull remotes")
+        git_sub_parser.add_parser("push", help="Push changes")
+        git_add_parser = git_sub_parser.add_parser("add", help="Add changes")
+        git_add_parser.add_argument(
+            "files",
+            nargs="+",
+            default=[],
+            action=ExtendAndJoinStrAction,
+            help="Files to add",
+            metavar="PATH ...",
+        )
+        git_commit_parser = git_sub_parser.add_parser("commit", help="Commit changes")
+        git_commit_parser.add_argument(
+            "message",
+            nargs="+",
+            default=[],
+            action=ExtendAndJoinStrAction,
+            help="Commit message",
+            metavar="MESSAGE",
+        )
+        git_checkout_parser = git_sub_parser.add_parser(
+            "checkout", help="Checkout branch"
+        )
+        git_checkout_parser.add_argument("branch", type=str, help="Branch to checkout")
+        # TODO
+        # git_stash_parser = git_sub_parsers.add_parser("stash", help="Stash changes")
+        # git_stash_parser.add_argument(
+        #     "-a", "--all", action="store_true", dest="all", help="Stash all changes"
+        # )
+        # git_stash_parser.add_argument(
+        #     "-m", "--message", dest="message", help="Stash message"
+        # )
+        # git_sub_parsers.add_parser("unstash", help="Apply last stash changes")
 
-    # TODO
-    # git_sub_parsers.add_parser("branch", help="Show branches")
-    # git_sub_parsers.add_parser("tag", help="Show tags")
-    # git_sub_parsers.add_parser("status", help="Show status")
-    # Dangerous commands
-    # git_sub_parsers.add_parser("clean", help="Clean repo")
-    # git_sub_parsers.add_parser("reset", help="Reset repo")
-    # git_sub_parsers.add_parser("revert", help="Revert repo")
-
-    git_sub_parsers = git_sub_parser.choices
-    __subcommands_sanity_check(git_sub_parsers.keys(), COMMANDS["git"].keys(), "git")
-    for git_sub_parser in git_sub_parsers.values():
-        add_top_level_args(git_sub_parser)  # type: ignore
+        # TODO
+        # git_sub_parsers.add_parser("branch", help="Show branches")
+        # git_sub_parsers.add_parser("tag", help="Show tags")
+        # git_sub_parsers.add_parser("status", help="Show status")
+        # Dangerous commands
+        # git_sub_parsers.add_parser("clean", help="Clean repo")
+        # git_sub_parsers.add_parser("reset", help="Reset repo")
+        # git_sub_parsers.add_parser("revert", help="Revert repo")
 
 
 def add_pipenv_parser(sub_parser: argparse._SubParsersAction):
-    pipenv_parser = sub_parser.add_parser(name="pipenv", help="Run a pipenv command")
-    pipenv_sub_parser = pipenv_parser.add_subparsers(dest="subcommand", required=True)
-    pipenv_sub_parser.add_parser("location", help="Get location of virtualenv")
-    pipenv_sub_parser.add_parser("lock", help="Lock dependencies")
-    pipenv_sub_parser.add_parser("remove", help="Remove virtualenv")
-    pipenv_sub_parser.add_parser("sync", help="Sync dependencies")
-    pipenv_sub_parser.add_parser("update", help="Update dependencies")
-    pipenv_sub_parser.add_parser("install", help="Install dependencies")
-
-    pipenv_sub_parsers = pipenv_sub_parser.choices
-    __subcommands_sanity_check(
-        pipenv_sub_parsers.keys(), COMMANDS["pipenv"].keys(), "pipenv"
-    )
-    for sub_parser in pipenv_sub_parsers.values():
-        add_top_level_args(sub_parser)  # type: ignore
+    with subcommand(sub_parser, "pipenv") as pipenv_sub_parser:
+        pipenv_sub_parser.add_parser("location", help="Get location of virtualenv")
+        pipenv_sub_parser.add_parser("lock", help="Lock dependencies")
+        pipenv_sub_parser.add_parser("remove", help="Remove virtualenv")
+        pipenv_sub_parser.add_parser("sync", help="Sync dependencies")
+        pipenv_sub_parser.add_parser("update", help="Update dependencies")
+        pipenv_sub_parser.add_parser("install", help="Install dependencies")
 
 
 def add_cmd_parser(sub_parser: argparse._SubParsersAction):
-    cmd_parser = sub_parser.add_parser(name="cmd", help="Run a free command")
-    cmd_sub_parser = cmd_parser.add_subparsers(dest="subcommand", required=True)
-    cmd_free_sub_parser = cmd_sub_parser.add_parser("free", help="Run a free command")
-    cmd_free_sub_parser.add_argument(
-        "free_command", help="Command to run", metavar='"COMMAND"'
-    )
-
-    cmd_sub_parsers = cmd_sub_parser.choices
-    __subcommands_sanity_check(cmd_sub_parsers.keys(), COMMANDS["cmd"].keys(), "cmd")
-    for sub_parser in cmd_sub_parsers.values():
-        add_top_level_args(sub_parser)  # type: ignore
+    with subcommand(sub_parser, "cmd") as cmd_sub_parser:
+        cmd_free_sub_parser = cmd_sub_parser.add_parser(
+            "free", help="Run a free command"
+        )
+        cmd_free_sub_parser.add_argument(
+            "free_command", help="Command to run", metavar='"COMMAND"'
+        )
+        # cmd_test_sub_parser = cmd_sub_parser.add_parser(
+        #     "test", help="Run a test command"
+        # )
+        # cmd_test_sub_parser.add_argument(
+        #     "test_command", help="Command to run [FOR TESTING]", metavar='"COMMAND"'
+        # )
 
 
 def get_parser():
-    here = Path.cwd().resolve()
     command_parser = argparse.ArgumentParser(
-        description=f"Actions for all git repos in {here}",
+        description=f"Actions for all git repos in {Path.cwd().resolve()}",
     )
     sub_parsers = command_parser.add_subparsers(dest="command")
 
@@ -138,8 +150,8 @@ def get_parser():
     return command_parser
 
 
-def __subcommands_sanity_check(
-    parser_keys: Iterable[str], commands_keys: Iterable[str], parser_name: str = ""
+def _subcommands_sanity_check(
+    parser_keys: Iterable[str], commands_keys: Iterable[str], *, parser_name: str = ""
 ):
     if difference := set(parser_keys) ^ set(commands_keys):
         raise ValueError(

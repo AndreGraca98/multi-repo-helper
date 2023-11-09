@@ -19,6 +19,14 @@ SHELLRC_FILE=~/.bash_profile TABCOMPLETE_FILE=~/.bash_completion python setup.py
 
 Can be used in any folder that has git repositories
 
+### Create a config file
+
+If no config file is found `mrh` will use default values
+
+```bash
+echo '{"filter":["*repo1*", "*repo2*"], "verbose":false, "no_notify":true}' > .mrh.json
+```
+
 ### Chain commands
 
 ```bash

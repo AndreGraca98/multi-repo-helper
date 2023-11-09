@@ -1,14 +1,4 @@
-__all__ = [
-    "cs",
-    "ftitle",
-    "funderline",
-    "fstrike",
-    "fname",
-    "fcode",
-    "ferror",
-    "fsuccess",
-    "fhelp",
-]
+__all__ = ["cs"]
 
 
 # Console pretty printing
@@ -69,14 +59,14 @@ class cs:
         return f"{style}{text}{cs.END}"
 
 
-ftitle = cs(cs.BOLD, cs.UNDERLINE, cs.YELLOW)
-funderline = cs(cs.UNDERLINE)
-fstrike = cs(cs.STRIKE)
-fname = cs(cs.BOLD, cs.UNDERLINE, cs.MUTE, cs.BBLUE)
-fcode = cs(cs.ITALIC, cs.MUTE, cs.GREEN)
-ferror = cs(cs.BOLD, cs.BLINK, cs.RED)
-fsuccess = cs(cs.BOLD, cs.GREEN)
-fhelp = cs(cs.YELLOW, cs.MUTE)
+# ftitle = cs(cs.BOLD, cs.UNDERLINE, cs.YELLOW)
+# funderline = cs(cs.UNDERLINE)
+# fstrike = cs(cs.STRIKE)
+# fname = cs(cs.BOLD, cs.UNDERLINE, cs.MUTE, cs.BBLUE)
+# fcode = cs(cs.ITALIC, cs.MUTE, cs.GREEN)
+# ferror = cs(cs.BOLD, cs.BLINK, cs.RED)
+# fsuccess = cs(cs.BOLD, cs.GREEN)
+# fhelp = cs(cs.YELLOW, cs.MUTE)
 
 #
 fmagenta = cs(cs.MAGENTA, cs.BOLD)

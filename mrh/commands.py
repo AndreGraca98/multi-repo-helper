@@ -15,7 +15,10 @@ COMMANDS = dict(
         remove="pipenv --rm",
         sync="pipenv sync --dev",
         update="pipenv update",
-        install="pipenv install",
+        install="pipenv install --dev",
     ),
-    cmd=dict(free="{command}"),
+    cmd=dict(
+        free="{free_command}",
+        # test="{test_command}",
+    ),
 )
