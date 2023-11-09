@@ -1,2 +1,2 @@
 # flake8: noqa
-from logger import get_logger
+from mrh.logger import get_logger

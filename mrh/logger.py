@@ -1,7 +1,9 @@
 import logging
 import os
 
-from colors import fblue, fgreen, fmagenta, fred, fyellow
+from mrh.colors import fblue, fgreen, fmagenta, fred, fyellow
+
+__all__ = ["get_logger"]
 
 
 def get_logger(name: str):
