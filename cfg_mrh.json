@@ -1,0 +1,14 @@
+{
+    "verbose": true,
+    "filter": [
+        "lib*",
+        "orm",
+        "core",
+        "icn*",
+        "doc*gen*",
+        "*inter*",
+        "time*",
+        "*api*",
+        "*dash*"
+    ]
+}
