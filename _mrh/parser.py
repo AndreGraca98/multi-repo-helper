@@ -141,7 +141,7 @@ def get_parser():
     command_parser = argparse.ArgumentParser(
         description=f"Actions for all git repos in {Path.cwd().resolve()}",
     )
-    sub_parsers = command_parser.add_subparsers(dest="command")
+    sub_parsers = command_parser.add_subparsers(dest="command", required=True)
 
     add_git_parser(sub_parsers)
     add_pipenv_parser(sub_parsers)
