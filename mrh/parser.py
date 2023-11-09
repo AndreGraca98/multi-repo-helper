@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Iterable
 
 from mrh.commands import COMMANDS
-from mrh.configuration import DEFAULT_CONFIGURATION, ConfigurationReader
+from mrh.configuration import DEFAULT_CONFIGURATION_READER, ConfigurationReader
 from mrh.logger import get_logger
 
 __all__ = ["get_parser"]
@@ -34,7 +34,7 @@ def add_top_level_args(parser: argparse.ArgumentParser):
         "--cfg",
         "--config",
         type=str,
-        default=DEFAULT_CONFIGURATION,
+        default=DEFAULT_CONFIGURATION_READER.read(),
         dest="config",
         action=ConfigurationAction,
         help="Config file to use",

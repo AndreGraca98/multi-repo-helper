@@ -21,25 +21,24 @@ class Action:
         self._kwargs = kwargs
 
     @property
-    def cmd(self) -> str:
+    def cmd_str(self) -> str:
         return COMMANDS[self._command][self._subcommand].format(**self._kwargs)
 
     def __call__(self, repo: Path) -> subprocess.CompletedProcess:
         return self.run(repo)
 
     def run(self, repo: Path) -> subprocess.CompletedProcess:
-        _log.info(f"Running action on {fname(repo.name)}")
-        return run_cmd(repo, self.cmd)
+        _log.info(f"Running on {fname(repo.name)}")
+        return run_cmd(repo, self.cmd_str)
 
     def __str__(self) -> str:
-        return self.cmd
+        return self.cmd_str
 
     def __repr__(self) -> str:
         kwargs = ", ".join(f"{k}={v!r}" for k, v in self._kwargs.items())
         if kwargs:
             kwargs = ", " + kwargs
         return (
-            # f"Action level: {self.level} => "
             f"{self.__class__.__name__}({self._command}, "
             f"{self._subcommand}{kwargs})"
         )
