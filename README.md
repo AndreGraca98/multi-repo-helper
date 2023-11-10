@@ -10,13 +10,19 @@ repositories
 
 ## How to install
 
-Run (in `multi-repo-helper/`):
+### From pip
+
+```bash
+pip install git+https://github.com/AndreGraca98/multi-repo-helper.git
+```
+
+### From local mrh repository
 
 ```bash
 # Load mrh from single file
-SHELLRC_FILE=~/.bash_profile python setup.py
+SHELLRC_FILE=~/.bash_profile python _setup.py
 # Load mrh from tab completion file
-SHELLRC_FILE=~/.bash_profile TABCOMPLETION_FILE=~/.bash_completion python setup.py
+SHELLRC_FILE=~/.bash_profile TABCOMPLETION_FILE=~/.bash_completion python _setup.py
 
 # Or just use the Makefile
 make setup-bash
