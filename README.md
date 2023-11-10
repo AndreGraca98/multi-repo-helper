@@ -54,12 +54,12 @@ echo '{"filter":["*repo1*", "*repo2*"], "verbose":false, "no_notify":true}' > .m
 
 Possible configuration options (in the *.json* file)
 
-| Options   | Description                                    | Type      | Required | Example |
-| --------- | ---------------------------------------------- | --------- | -------- | ------- |
-| filter    | A list of filters to gather repositories       | list[str] | No       | ---     |
-| verbose   | Verbose mode                                   | bool      | No       | ---     |
-| no_notify | Don't notify when the command finishes running | bool      | No       | ---     |
-| pool_size | How many processes to run at the same time     | int       | No       | ---     |
+| Options   | Description                                    | Type      | Required | Example            |
+| --------- | ---------------------------------------------- | --------- | -------- | ------------------ |
+| filter    | A list of filters to gather repositories       | list[str] | No       | ["repo*", "other"] |
+| verbose   | Verbose mode                                   | bool      | No       | true               |
+| no_notify | Don't notify when the command finishes running | bool      | No       | false              |
+| pool_size | How many processes to run at the same time     | int       | No       | 10                 |
 
 ### Chain commands
 
