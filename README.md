@@ -12,7 +12,7 @@ repositories
 
 ```bash
 # Use default options
-pip install git+https://github.com/AndreGraca98/multi-repo-helper.git
+SHELLRC_FILE=~/.bash_profile pip install git+https://github.com/AndreGraca98/multi-repo-helper.git
 # Or pass the locations
 SHELLRC_FILE=~/.bash_profile COMPLETION_FILE=~/.bash_completion pip install git+https://github.com/AndreGraca98/multi-repo-helper.git
 ```
