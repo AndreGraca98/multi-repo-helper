@@ -2,8 +2,6 @@
 
 ![badge](https://img.shields.io/github/v/tag/AndreGraca98/multi-repo-helper?logo=python&logoColor=yellow&label=version)
 
-:warning: Work in progress :warning:
-
 This is a tool to help when dealing with multiple repositories for a single
 project where you may need to perform the same action on all the git
 repositories
@@ -16,16 +14,16 @@ repositories
 # Use default options
 pip install git+https://github.com/AndreGraca98/multi-repo-helper.git
 # Or pass the locations
-SHELLRC_FILE=~/.bash_profile TABCOMPLETION_FILE=~/.bash_completion pip install git+https://github.com/AndreGraca98/multi-repo-helper.git
+SHELLRC_FILE=~/.bash_profile COMPLETION_FILE=~/.bash_completion pip install git+https://github.com/AndreGraca98/multi-repo-helper.git
 ```
 
 ### From local mrh repository
 
 ```bash
-# Load mrh from single file
+# Create mrh without tabcompletion
 SHELLRC_FILE=~/.bash_profile python _setup.py
-# Load mrh from tab completion file
-SHELLRC_FILE=~/.bash_profile TABCOMPLETION_FILE=~/.bash_completion python _setup.py
+# Create mrh with tabcompletion
+SHELLRC_FILE=~/.bash_profile COMPLETION_FILE=~/.bash_completion python _setup.py
 
 # Or just use the Makefile
 make setup-bash
@@ -33,17 +31,35 @@ make setup-zsh
 ...
 ```
 
+Possible installation options (as environment variables)
+
+| Options         | Description                                                  | Type | Required | Example            |
+| --------------- | ------------------------------------------------------------ | ---- | -------- | ------------------ |
+| SHELLRC_FILE    | The file that loads the terminal                             | str  | Yes      | ~/.bash_profile    |
+| COMPLETION_FILE | The tab completions file (can be the same as *SHELLRC_FILE*) | str  | No       | ~/.bash_completion |
+
+Note: If *COMPLETION_FILE* is not set, mrh will not have tab completion
+
 ## How to use
 
 Can be used in any folder that has git repositories
 
 ### Create a config file
 
-If no config file is found `mrh` will use default values
+If no config file is passed `mrh` tries to read a default config file `.mrh.json`. If the file is not found, it will use default values.
 
 ```bash
 echo '{"filter":["*repo1*", "*repo2*"], "verbose":false, "no_notify":true}' > .mrh.json
 ```
+
+Possible configuration options (in the *.json* file)
+
+| Options   | Description                                    | Type      | Required | Example |
+| --------- | ---------------------------------------------- | --------- | -------- | ------- |
+| filter    | A list of filters to gather repositories       | list[str] | No       | ---     |
+| verbose   | Verbose mode                                   | bool      | No       | ---     |
+| no_notify | Don't notify when the command finishes running | bool      | No       | ---     |
+| pool_size | How many processes to run at the same time     | int       | No       | ---     |
 
 ### Chain commands
 

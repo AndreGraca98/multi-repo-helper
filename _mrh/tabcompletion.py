@@ -6,8 +6,11 @@ __all__ = ["tabcomplete"]
 
 def tabcomplete(parser: argparse.ArgumentParser):
     """Bash autocomplete for subcommands and actions.
-    This function is called when the script is run with
-    the argument BASH_COMPLETION and the argument SUBCOMMANDS or ACTIONS {subcommand}}
+    This function is called when the script is run when:
+    - mrh COMPLETION INIT
+    - mrh COMPLETION COMMANDS
+    - mrh COMPLETION SUBCOMMANDS {command}
+    - mrh COMPLETION ARGS {command} {subcommand}
     """
 
     def parser_choices(parser: argparse.ArgumentParser) -> dict:
@@ -33,18 +36,18 @@ def tabcomplete(parser: argparse.ArgumentParser):
     def __raise_invalid_args():
         raise ValueError(f"Invalid tab completion arguments: {' '.join(argv)}")
 
-    if "TAB_COMPLETION" in argv:
+    if "COMPLETION" in argv:
         if "INIT" in argv and len(argv) == 2:
-            # mrh TAB_COMPLETION INIT
+            # mrh COMPLETION INIT
             __mrh_complete()
         elif "COMMANDS" in argv and len(argv) == 2:
-            # mrh TAB_COMPLETION COMMANDS
+            # mrh COMPLETION COMMANDS
             print(" ".join(__get_commands()))
         elif "SUBCOMMANDS" in argv and len(argv) == 3:
-            # mrh TAB_COMPLETION SUBCOMMANDS {command}
+            # mrh COMPLETION SUBCOMMANDS {command}
             print(" ".join(__get_subcommands(argv[2])))
         elif "ARGS" in argv and len(argv) >= 4:
-            # mrh TAB_COMPLETION ARGS {command} {subcommand}
+            # mrh COMPLETION ARGS {command} {subcommand}
             print(" ".join(__get_args(argv[2], argv[3])))
         # else:
         #     __raise_invalid_args()
@@ -59,50 +62,34 @@ def __mrh_complete():
 # START: Bash tab completion for multi_repo_helper
 # Do not edit the following line; it is used by multi_repo_helper
 _mrh_complete() {
-    local cur prev
+    local cur first second
     cur=${COMP_WORDS[COMP_CWORD]}
-    prev=${COMP_WORDS[COMP_CWORD - 1]}
-    [[ len_words=${#COMP_WORDS[@]} -gt 2 ]] && prev_prev=${COMP_WORDS[COMP_CWORD - 2]} || prev_prev=""
+    [[ len_words=${#COMP_WORDS[@]} -gt 0 ]] && first=${COMP_WORDS[1]} || first=""
+    [[ len_words=${#COMP_WORDS[@]} -gt 1 ]] && second=${COMP_WORDS[2]} || second=""
 
     case ${COMP_CWORD} in
     1)
-        COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION COMMANDS)" -- ${cur}))
-        ;;
+        COMPREPLY=($(compgen -W "$(mrh COMPLETION COMMANDS)" -- ${cur}))
+        ;; # Gives commands
     2)
-        case ${prev} in
-        git)
-            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION SUBCOMMANDS git)" -- ${cur}))
-            ;;
-        pipenv)
-            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION SUBCOMMANDS pipenv)" -- ${cur}))
-            ;;
-        cmd)
-            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION SUBCOMMANDS cmd)" -- ${cur}))
-            ;;
-        *)
-            COMPREPLY=()
-            ;;
-        esac
-        ;;
-    3)
-        case ${prev_prev} in
-        git)
-            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION ARGS git ${prev})" -- ${cur}))
-            ;;
-        pipenv)
-            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION ARGS pipenv ${prev})" -- ${cur}))
-            ;;
-        cmd)
-            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION ARGS cmd ${prev})" -- ${cur}))
-            ;;
+        case ${first} in
+        git | pipenv | cmd)
+            COMPREPLY=($(compgen -W "$(mrh COMPLETION SUBCOMMANDS ${first})" -- ${cur}))
+            ;; # Gives subcommands for a command
         *)
             COMPREPLY=()
             ;;
         esac
         ;;
     *)
-        COMPREPLY=($(compgen -f -- ${cur}))
-
+        case ${cur} in
+        -*)
+            COMPREPLY=($(compgen -W "$(mrh COMPLETION ARGS ${first} ${second})" -- ${cur}))
+            ;; # Gives args for subcommands of a command
+        *)
+            COMPREPLY=($(compgen -f -- ${cur})) # If no matches complete with files
+            ;;
+        esac
         ;;
     esac
 }
