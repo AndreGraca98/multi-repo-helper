@@ -61,8 +61,9 @@ def __mrh_complete():
 _mrh_complete() {
     local cur prev
     cur=${COMP_WORDS[COMP_CWORD]}
-    prev_prev=${COMP_WORDS[COMP_CWORD - 2]:-""}
     prev=${COMP_WORDS[COMP_CWORD - 1]}
+    [[ len_words=${#COMP_WORDS[@]} -gt 2 ]] && prev_prev=${COMP_WORDS[COMP_CWORD - 2]} || prev_prev=""
+
     case ${COMP_CWORD} in
     1)
         COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION COMMANDS)" -- ${cur}))
