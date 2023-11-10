@@ -16,6 +16,23 @@ class Configuration:
     no_notify: bool = False
     pool_size: int = 10
 
+    def to_dict(self) -> dict:
+        return {
+            "filter": self.filter,
+            "verbose": self.verbose,
+            "no_notify": self.no_notify,
+            "pool_size": self.pool_size,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), indent=4)
+
+    def to_file(self, path: Path):
+        assert path.suffix == ".json"
+        if not path.is_file():
+            path.touch(mode=0o644)  # rw-r--r--
+        path.write_text(self.to_json())
+
 
 class ConfigurationReader:
     """Reads a config file and returns a Configuration object."""
@@ -31,7 +48,7 @@ class ConfigurationReader:
             return self.__config
 
         if not self.path.is_file():
-            _log.warning(f"Config file {str(self.path)!r} not found")
+            _log.debug(f"Config file {str(self.path)!r} not found")
             config = Configuration()
         elif self.path.read_text() == "":
             _log.warning(f"Config file {str(self.path)!r} is empty")

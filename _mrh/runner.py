@@ -60,8 +60,7 @@ def multi_action(
 
 def main():
     parser = get_parser()
-    # run tab completion
-    tabcomplete(parser)
+    tabcomplete(parser)  # if tabcomplete is called, it will exit the program
 
     args = parser.parse_args()
     argsd = dict(args._get_kwargs())

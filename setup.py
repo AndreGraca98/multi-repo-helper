@@ -14,8 +14,8 @@ def path_from_home(path: Path) -> str:
 home = Path.home()
 SHELLRC_FILE = Path(os.getenv("SHELLRC_FILE", default=home / ".bash_profile"))
 HOME_SHELLRC_FILE = path_from_home(SHELLRC_FILE)
-TABCOMPLETE_FILE = Path(os.getenv("TABCOMPLETE_FILE", default=SHELLRC_FILE))
-HOME_TABCOMPLETE_FILE = path_from_home(TABCOMPLETE_FILE)
+TABCOMPLETION_FILE = Path(os.getenv("TABCOMPLETION_FILE", default=SHELLRC_FILE))
+HOME_TABCOMPLETION_FILE = path_from_home(TABCOMPLETION_FILE)
 HOME_BIN_DIR = home / "bin"
 
 _mrh_bin_dir = HOME_BIN_DIR / "_mrh"
@@ -34,32 +34,32 @@ shutil.copytree("_mrh", _mrh_bin_dir, dirs_exist_ok=True)
 
 
 # Create tabcompletion
-TABCOMPLETE_TEXT = f"""
+TABCOMPLETION_TEXT = f"""
 # Auto generated for mrh. Please do not edit
 # >>> START tabcompletion
 [ -f {path_from_home(home_bin_mrh)} ] && source /dev/stdin <<<"$(mrh TAB_COMPLETION INIT)"
 # <<< END tabcompletion
 """  # noqa
 
-if not TABCOMPLETE_FILE.exists():
-    _log.info(f"creating {HOME_TABCOMPLETE_FILE}")
-    TABCOMPLETE_FILE.touch(mode=0o644)  # rw-r--r--
-    TABCOMPLETE_FILE.write_text(TABCOMPLETE_TEXT)
-elif TABCOMPLETE_FILE.read_text().find(TABCOMPLETE_TEXT) == -1:
+if not TABCOMPLETION_FILE.exists():
+    _log.info(f"creating {HOME_TABCOMPLETION_FILE}")
+    TABCOMPLETION_FILE.touch(mode=0o644)  # rw-r--r--
+    TABCOMPLETION_FILE.write_text(TABCOMPLETION_TEXT)
+elif TABCOMPLETION_FILE.read_text().find(TABCOMPLETION_TEXT) == -1:
     # If file exists but doesn't have the tabcomplete text, add it
-    _log.info(f"adding mrh tabcompletion to {HOME_TABCOMPLETE_FILE}")
-    text = TABCOMPLETE_FILE.read_text()
-    TABCOMPLETE_FILE.write_text(text + TABCOMPLETE_TEXT)
+    _log.info(f"adding mrh tabcompletion to {HOME_TABCOMPLETION_FILE}")
+    text = TABCOMPLETION_FILE.read_text()
+    TABCOMPLETION_FILE.write_text(text + TABCOMPLETION_TEXT)
 else:
-    _log.warning(f"mrh tabcompletion already exists in {HOME_TABCOMPLETE_FILE}")
+    _log.warning(f"mrh tabcompletion already exists in {HOME_TABCOMPLETION_FILE}")
 
 # Add tabcomplete to shellrc
-SHELLRC_TEXT = f"[ -f {HOME_TABCOMPLETE_FILE} ] && source {HOME_TABCOMPLETE_FILE}"
+SHELLRC_TEXT = f"[ -f {HOME_TABCOMPLETION_FILE} ] && source {HOME_TABCOMPLETION_FILE}"
 
-if SHELLRC_FILE == TABCOMPLETE_FILE:
+if SHELLRC_FILE == TABCOMPLETION_FILE:
     _log.warning(
         f"SHELLRC_FILE={path_from_home(SHELLRC_FILE)} and "
-        f"TABCOMPLETE_FILE={path_from_home(TABCOMPLETE_FILE)} "
+        f"TABCOMPLETE_FILE={path_from_home(TABCOMPLETION_FILE)} "
         "are the same file"
     )
 elif not SHELLRC_FILE.exists():

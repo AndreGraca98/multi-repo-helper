@@ -10,16 +10,23 @@ def tabcomplete(parser: argparse.ArgumentParser):
     the argument BASH_COMPLETION and the argument SUBCOMMANDS or ACTIONS {subcommand}}
     """
 
-    def subparser_choices(parser: argparse.ArgumentParser) -> dict:
+    def parser_choices(parser: argparse.ArgumentParser) -> dict:
         return parser._subparsers._actions[1].choices  # type: ignore
 
+    def subparser_choices(subparser: argparse.ArgumentParser) -> dict:
+        return subparser._optionals._actions[1].choices  # type: ignore
+
     def __get_commands() -> list[str]:
-        return list(subparser_choices(parser).keys())
+        return list(parser_choices(parser).keys())
 
     def __get_subcommands(command: str) -> list[str]:
-        subparser = subparser_choices(parser)[command]
-        subcommands = subparser._optionals._actions[1].choices.keys()
-        return list(subcommands)
+        subparser = parser_choices(parser)[command]
+        return list(subparser_choices(subparser).keys())
+
+    def __get_args(command: str, subcommand: str) -> list[str]:
+        subparser = parser_choices(parser)[command]
+        subcommand_parser = subparser_choices(subparser)[subcommand]
+        return list(subcommand_parser._option_string_actions.keys())
 
     argv = sys.argv[1:]
 
@@ -27,18 +34,20 @@ def tabcomplete(parser: argparse.ArgumentParser):
         raise ValueError(f"Invalid tab completion arguments: {' '.join(argv)}")
 
     if "TAB_COMPLETION" in argv:
-        if "INIT" in argv:
+        if "INIT" in argv and len(argv) == 2:
+            # mrh TAB_COMPLETION INIT
             __mrh_complete()
-        elif "COMMANDS" in argv:
-            if len(sys.argv) != 3:
-                __raise_invalid_args()
+        elif "COMMANDS" in argv and len(argv) == 2:
+            # mrh TAB_COMPLETION COMMANDS
             print(" ".join(__get_commands()))
-        elif "SUBCOMMANDS" in argv:
-            if len(sys.argv) != 4:
-                __raise_invalid_args()
-            print(" ".join(__get_subcommands(sys.argv[3])))
-        else:
-            __raise_invalid_args()
+        elif "SUBCOMMANDS" in argv and len(argv) == 3:
+            # mrh TAB_COMPLETION SUBCOMMANDS {command}
+            print(" ".join(__get_subcommands(argv[2])))
+        elif "ARGS" in argv and len(argv) >= 4:
+            # mrh TAB_COMPLETION ARGS {command} {subcommand}
+            print(" ".join(__get_args(argv[2], argv[3])))
+        # else:
+        #     __raise_invalid_args()
         exit(0)
 
 
@@ -52,6 +61,7 @@ def __mrh_complete():
 _mrh_complete() {
     local cur prev
     cur=${COMP_WORDS[COMP_CWORD]}
+    prev_prev=${COMP_WORDS[COMP_CWORD - 2]}
     prev=${COMP_WORDS[COMP_CWORD - 1]}
     case ${COMP_CWORD} in
     1)
@@ -67,6 +77,22 @@ _mrh_complete() {
             ;;
         cmd)
             COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION SUBCOMMANDS cmd)" -- ${cur}))
+            ;;
+        *)
+            COMPREPLY=()
+            ;;
+        esac
+        ;;
+    3)
+        case ${prev_prev} in
+        git)
+            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION ARGS git ${prev})" -- ${cur}))
+            ;;
+        pipenv)
+            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION ARGS pipenv ${prev})" -- ${cur}))
+            ;;
+        cmd)
+            COMPREPLY=($(compgen -W "$(mrh TAB_COMPLETION ARGS cmd ${prev})" -- ${cur}))
             ;;
         *)
             COMPREPLY=()

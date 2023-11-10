@@ -31,8 +31,8 @@ class ConfigurationAction(argparse.Action):
 
 def add_top_level_args(parser: argparse.ArgumentParser):
     parser.add_argument(
+        "-c",
         "--cfg",
-        "--config",
         type=str,
         default=DEFAULT_CONFIGURATION_READER.read(),
         dest="config",
