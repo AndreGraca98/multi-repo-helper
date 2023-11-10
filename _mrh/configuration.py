@@ -62,4 +62,5 @@ class ConfigurationReader:
         return config
 
 
-DEFAULT_CONFIGURATION_READER = ConfigurationReader(Path(".mrh.json").resolve())
+DEFAULT_CONFIGURATION_PATH = Path(".mrh.json").resolve()
+DEFAULT_CONFIGURATION_READER = ConfigurationReader(DEFAULT_CONFIGURATION_PATH)
