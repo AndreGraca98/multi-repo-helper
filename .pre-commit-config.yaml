@@ -26,6 +26,7 @@ repos:
     hooks:
       - id: black
         name: Run black
+        stages: [commit, push]
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
@@ -33,6 +34,7 @@ repos:
       - id: isort
         name: Run isort
         args: [--settings-path=setup.cfg]
+        stages: [commit, push]
 
   - repo: https://github.com/PyCQA/autoflake
     rev: v2.1.1
@@ -40,6 +42,7 @@ repos:
       - id: autoflake
         name: Run autoflake
         args: [--config=setup.cfg]
+        stages: [commit, push]
 
   - repo: https://github.com/pycqa/flake8
     rev: 6.0.0

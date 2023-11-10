@@ -1,2 +1,5 @@
 *cache*
 *.ipynb*
+.env
+dist
+*.egg-info*

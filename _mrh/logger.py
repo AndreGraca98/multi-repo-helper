@@ -1,7 +1,7 @@
 import logging
 import os
 
-from .colors import fblue, fgreen, fmagenta, fred, fyellow
+from .terminal import fblue, fgreen, fmagenta, fred, fyellow
 
 __all__ = ["get_logger"]
 

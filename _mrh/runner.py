@@ -2,10 +2,16 @@ from multiprocessing import Pool
 from pathlib import Path
 
 from .actions import Action
-from .colors import cs
 from .configuration import Configuration
+from .logger import get_logger
 from .notifications import notify
 from .parser import get_parser
+from .tabcompletion import tabcomplete
+from .terminal import cs
+
+__all__ = ["main"]
+
+_log = get_logger(__name__)
 
 ferror = cs(cs.BOLD, cs.BLINK, cs.RED)
 fsuccess = cs(cs.BOLD, cs.GREEN)
@@ -35,7 +41,7 @@ def multi_action(
     verbose: bool,
     pool_size: int = 10,
 ):
-    print(f"Running {fcode(str(action))} in {len(repositories)} repositories...")
+    _log.info(f"Running {fcode(str(action))} in {len(repositories)} repositories...")
     with Pool(pool_size) as p:
         results = p.map(action, repositories)
         print("=" * 100)
@@ -54,18 +60,17 @@ def multi_action(
 
 def main():
     parser = get_parser()
-    args = parser.parse_args()
+    # run tab completion
+    tabcomplete(parser)
 
+    args = parser.parse_args()
     argsd = dict(args._get_kwargs())
     cfg: Configuration = argsd.pop("config")
 
     action = Action(**argsd)
-
     filtered_repositories = get_filtered_dirs(Path.cwd().resolve(), cfg.filter)
-
     multi_action(action, filtered_repositories, cfg.verbose, cfg.pool_size)
 
     if cfg.no_notify:
         return
-
     notify(action)

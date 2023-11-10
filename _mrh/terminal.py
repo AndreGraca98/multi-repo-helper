@@ -2,6 +2,11 @@ __all__ = ["cs"]
 
 
 # Console pretty printing
+import os
+import subprocess
+from pathlib import Path
+
+
 class cs:
     """Console styles"""
 
@@ -59,18 +64,34 @@ class cs:
         return f"{style}{text}{cs.END}"
 
 
-# ftitle = cs(cs.BOLD, cs.UNDERLINE, cs.YELLOW)
-# funderline = cs(cs.UNDERLINE)
-# fstrike = cs(cs.STRIKE)
-# fname = cs(cs.BOLD, cs.UNDERLINE, cs.MUTE, cs.BBLUE)
-# fcode = cs(cs.ITALIC, cs.MUTE, cs.GREEN)
-# ferror = cs(cs.BOLD, cs.BLINK, cs.RED)
-# fsuccess = cs(cs.BOLD, cs.GREEN)
-# fhelp = cs(cs.YELLOW, cs.MUTE)
-
-#
 fmagenta = cs(cs.MAGENTA, cs.BOLD)
 fred = cs(cs.RED)
 fyellow = cs(cs.YELLOW)
 fblue = cs(cs.BLUE)
-fgreen = cs(cs.GREEN)
+fgreen = cs(cs.GREEN, cs.MUTE)
+
+#
+fname = cs(cs.BOLD, cs.UNDERLINE, cs.MUTE, cs.BBLUE)
+fcode = cs(cs.ITALIC, cs.MUTE, cs.GREEN)
+
+
+class cd:
+    """Context manager for changing the current working directory"""
+
+    def __init__(self, path: str | Path):
+        self.path = Path(path).resolve()
+        assert self.path.is_dir()
+        self.cwd = Path.cwd()
+
+    def __enter__(self):
+        os.chdir(self.path)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        os.chdir(self.cwd)
+
+
+def run_cmd(repository: Path, cmd: str):
+    print_str = f"{fname(repository.name)}\n{fcode('$ '+cmd)}\n"
+    cmd_str = f'printf "{print_str}" && {cmd}'
+    with cd(repository):
+        return subprocess.run(cmd_str, capture_output=True, shell=True)
