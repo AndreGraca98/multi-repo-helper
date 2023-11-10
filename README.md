@@ -1,5 +1,7 @@
 # Multi git repository helper
 
+![badge](https://img.shields.io/github/v/tag/AndreGraca98/multi-repo-helper?logo=python&logoColor=yellow&label=version)
+
 :warning: Work in progress :warning:
 
 This is a tool to help when dealing with multiple repositories for a single
