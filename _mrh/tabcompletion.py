@@ -61,7 +61,7 @@ def __mrh_complete():
 _mrh_complete() {
     local cur prev
     cur=${COMP_WORDS[COMP_CWORD]}
-    prev_prev=${COMP_WORDS[COMP_CWORD - 2]}
+    prev_prev=${COMP_WORDS[COMP_CWORD - 2]:-""}
     prev=${COMP_WORDS[COMP_CWORD - 1]}
     case ${COMP_CWORD} in
     1)
