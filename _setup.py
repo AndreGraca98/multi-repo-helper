@@ -34,10 +34,10 @@ def setup_executable():
 
     # Create tabcompletion
     TABCOMPLETION_TEXT = f"""
-    # Auto generated for mrh. Please do not edit
-    # >>> START tabcompletion
-    [ -f {path_from_home(home_bin_mrh)} ] && source /dev/stdin <<<"$(mrh TAB_COMPLETION INIT)"
-    # <<< END tabcompletion
+# Auto generated for mrh. Please do not edit
+# >>> START tabcompletion
+[ -f {path_from_home(home_bin_mrh)} ] && source /dev/stdin <<<"$(mrh TAB_COMPLETION INIT)"
+# <<< END tabcompletion
     """  # noqa
 
     if not TABCOMPLETION_FILE.exists():
