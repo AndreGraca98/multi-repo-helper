@@ -91,6 +91,17 @@ def add_git_parser(sub_parser: argparse._SubParsersAction):
             "checkout", help="Checkout branch"
         )
         git_checkout_parser.add_argument("branch", type=str, help="Branch to checkout")
+        git_restore_parser = git_sub_parser.add_parser(
+            "restore", help="Restore changes"
+        )
+        git_restore_parser.add_argument(
+            "restore",
+            nargs="+",
+            default=[],
+            action=ExtendAndJoinStrAction,
+            help="Files to restore",
+            metavar="PATH ...",
+        )
         # TODO
         # git_stash_parser = git_sub_parsers.add_parser("stash", help="Stash changes")
         # git_stash_parser.add_argument(

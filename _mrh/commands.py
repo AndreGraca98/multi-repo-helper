@@ -6,6 +6,7 @@ COMMANDS = dict(
         commit='git commit -m "{message}"',
         push="git push",
         checkout="git checkout {branch}",
+        restore="git restore {files}",  # files is a string of files separated by spaces
         # stash="git stash",
         # unstash="git stash pop",
     ),
